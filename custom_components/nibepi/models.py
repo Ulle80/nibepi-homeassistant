@@ -140,6 +140,8 @@ class NibeRegister:
     value: Any = None
     raw_value: float | None = None
     timestamp: Any = None
+    # The last value was NibePi's "sensor not connected" marker.
+    not_connected: bool = False
 
     @property
     def is_enum(self) -> bool:
@@ -316,7 +318,8 @@ class NibeRegister:
             mapping = _mapping_from_info(info, writable=writable, low=min_, high=max_)
 
         value = data.get("data")
-        if _is_not_connected(value, factor, size):
+        not_connected = _is_not_connected(value, factor, size)
+        if not_connected:
             value = None
 
         raw = data.get("raw_data")
@@ -334,6 +337,7 @@ class NibeRegister:
             value=value,
             raw_value=raw if isinstance(raw, (int, float)) else None,
             timestamp=data.get("timestamp"),
+            not_connected=not_connected,
         )
 
     def as_definition(self) -> dict[str, Any]:
@@ -358,3 +362,4 @@ class NibeRegister:
         self.value = other.value
         self.raw_value = other.raw_value
         self.timestamp = other.timestamp
+        self.not_connected = other.not_connected

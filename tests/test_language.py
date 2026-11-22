@@ -132,7 +132,7 @@ async def test_options_flow_changes_language(
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done(wait_background_tasks=True)
-    assert entry.options == {CONF_LANGUAGE: "da"}
+    assert entry.options == {CONF_LANGUAGE: "da", "model": "auto"}
 
     # After the reload NibePi publishes again; labels are now Danish.
     for payload in (TEMPORARY_LUX, ALARM):

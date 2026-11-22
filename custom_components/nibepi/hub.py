@@ -10,11 +10,12 @@ from typing import Any
 from homeassistant.components import mqtt
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    DEFAULT_DEVICE_MODEL,
     DOMAIN,
     LWT_DISCONNECTED_SUFFIX,
     REFRESH_REQUEST_DELAY,
@@ -29,7 +30,8 @@ from .const import (
     TOPIC_SUFFIX_SET,
 )
 from .labels import DEFAULT_LANGUAGE
-from .models import InvalidRegisterPayloadError, NibeRegister
+from .models import InvalidRegisterPayloadError, NibeRegister, RegisterKind
+from .pump_models import detect_model
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +52,8 @@ class NibePiHub:
         base_topic: str,
         lwt_topic: str,
         language: str = DEFAULT_LANGUAGE,
+        *,
+        model: str | None = None,
     ) -> None:
         """Initialize the hub."""
         self.hass = hass
@@ -57,12 +61,23 @@ class NibePiHub:
         self.base_topic = base_topic
         self.lwt_topic = lwt_topic
         self.language = language
+        self.configured_model = model
+        self.detected_model: str | None = None
         self.registers: dict[str, NibeRegister] = {}
         self.available = True
         self._unsubscribers: list[Callable[[], None]] = []
         self._store = async_get_store(hass, entry_id)
         self._tasks: set[asyncio.Task[None]] = set()
         self._reload_scheduled = False
+        # Sensors that delivered a real value at least once, and sensors hidden
+        # automatically because they only ever reported "not connected".
+        self.connected: set[str] = set()
+        self.hidden_not_connected: set[str] = set()
+
+    @property
+    def device_model(self) -> str:
+        """Return the model shown on the device."""
+        return self.configured_model or self.detected_model or DEFAULT_DEVICE_MODEL
 
     async def async_start(self) -> None:
         """Restore known registers, subscribe, then request current values."""
@@ -113,6 +128,8 @@ class NibePiHub:
     async def _async_restore_registers(self) -> None:
         """Recreate entities for registers seen before the last restart."""
         data = await self._store.async_load() or {}
+        self.connected = set(data.get("connected", []))
+        self.hidden_not_connected = set(data.get("hidden_not_connected", []))
         for definition in data.get("registers", []):
             try:
                 register = NibeRegister.from_definition(definition)
@@ -126,6 +143,7 @@ class NibePiHub:
                 register,
             )
         _LOGGER.debug("Restored %s registers", len(self.registers))
+        self._update_model()
 
     async def _async_request_values(
         self, registers: list[str], *, only_missing: bool = True
@@ -153,7 +171,9 @@ class NibePiHub:
         return {
             "registers": [
                 register.as_definition() for register in self.registers.values()
-            ]
+            ],
+            "connected": sorted(self.connected),
+            "hidden_not_connected": sorted(self.hidden_not_connected),
         }
 
     @callback
@@ -168,12 +188,15 @@ class NibePiHub:
         known = self.registers.get(register.register)
         if known is None:
             self.registers[register.register] = register
+            # Before the entity exists, so it is created disabled if needed.
+            self._track_connection(register)
             self._store.async_delay_save(self._data_to_store, STORAGE_SAVE_DELAY)
             async_dispatcher_send(
                 self.hass,
                 SIGNAL_NEW_REGISTER.format(entry_id=self.entry_id),
                 register,
             )
+            self._update_model()
             return
 
         if known.as_definition() != register.as_definition():
@@ -190,11 +213,82 @@ class NibePiHub:
             return
 
         known.update_from(register)
+        self._track_connection(known)
         async_dispatcher_send(
             self.hass,
             SIGNAL_REGISTER_UPDATE.format(
                 entry_id=self.entry_id, register=register.register
             ),
+        )
+
+    @callback
+    def _track_connection(self, register: NibeRegister) -> None:
+        """Hide sensors that are not connected; show them again once they are.
+
+        NibePi polls every register of the model file, also for accessories that
+        are not installed (second climate system, pool, solar ...). Their
+        sensors only ever report "not connected". A sensor that worked before
+        is never hidden, so a broken sensor stays visible as unavailable.
+        """
+        if register.kind is not RegisterKind.SENSOR:
+            return
+        address = register.register
+        if register.value is not None:
+            if address not in self.connected:
+                self.connected.add(address)
+                self._store.async_delay_save(self._data_to_store, STORAGE_SAVE_DELAY)
+            if address in self.hidden_not_connected:
+                self._set_entity_hidden(register, hidden=False)
+            return
+        if (
+            not register.not_connected
+            or address in self.connected
+            or address in self.hidden_not_connected
+        ):
+            return
+        # Hide only once: if the user enables it again, it stays enabled.
+        self.hidden_not_connected.add(address)
+        self._store.async_delay_save(self._data_to_store, STORAGE_SAVE_DELAY)
+        self._set_entity_hidden(register, hidden=True)
+
+    @callback
+    def _set_entity_hidden(self, register: NibeRegister, *, hidden: bool) -> None:
+        """Disable or re-enable an existing sensor entity.
+
+        Only touches entities disabled by this integration (or enabled), never
+        ones the user disabled. A new entity has no registry entry yet; it is
+        created disabled instead (see NibePiEntity).
+        """
+        registry = er.async_get(self.hass)
+        entity_id = registry.async_get_entity_id(
+            register.kind.value, DOMAIN, f"{self.entry_id}_{register.register}"
+        )
+        if entity_id is None or (entry := registry.async_get(entity_id)) is None:
+            return
+        if hidden and entry.disabled_by is None:
+            _LOGGER.info("Disabling %s, sensor is not connected", entity_id)
+            registry.async_update_entity(
+                entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+            )
+        elif not hidden and entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
+            _LOGGER.info("Enabling %s, sensor delivers values now", entity_id)
+            registry.async_update_entity(entity_id, disabled_by=None)
+
+    @callback
+    def _update_model(self) -> None:
+        """Detect the pump model from the known registers and update the device."""
+        detected = detect_model(self.registers)
+        if detected is None or detected == self.detected_model:
+            return
+        self.detected_model = detected
+        _LOGGER.debug("Detected model %s", detected)
+        # Same device info as the entities (entity.py), only the model changes.
+        dr.async_get(self.hass).async_get_or_create(
+            config_entry_id=self.entry_id,
+            identifiers={(DOMAIN, self.entry_id)},
+            manufacturer="NIBE",
+            model=self.device_model,
+            name="NibePi",
         )
 
     @callback

@@ -58,9 +58,11 @@ async def test_real_world_registers(
     options = entity_registry.async_get(starts.entity_id).options
     assert options["sensor"]["suggested_display_precision"] == 0
 
-    assert hass.states.get("sensor.nibepi_ep21_bt2_supply_temp_s2").state == (
-        "unavailable"
-    )
+    # Second climate system not installed: sensor reports "not connected" and
+    # its entity is created disabled.
+    supply_s2 = entity_registry.async_get("sensor.nibepi_ep21_bt2_supply_temp_s2")
+    assert supply_s2.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert hass.states.get(supply_s2.entity_id) is None
     prio = hass.states.get("sensor.nibepi_prio")
     assert prio.state == "Heat"
     assert prio.attributes["device_class"] == "enum"

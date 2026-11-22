@@ -12,6 +12,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -23,12 +24,15 @@ from .const import (
     CONF_BASE_TOPIC,
     CONF_LANGUAGE,
     CONF_LWT_TOPIC,
+    CONF_MODEL,
     DEFAULT_BASE_TOPIC,
     DEFAULT_LWT_TOPIC,
     DOMAIN,
+    MODEL_AUTO,
     TOPIC_SUFFIX_JSON,
 )
 from .labels import LANGUAGE_AUTO, LANGUAGES
+from .pump_models import MODELS
 
 
 def _normalize_base_topic(topic: str) -> str:
@@ -41,10 +45,15 @@ def _has_wildcard(topic: str) -> bool:
 
 
 LANGUAGE_SCHEMA_OPTIONS = [LANGUAGE_AUTO, *LANGUAGES]
+# Model names are not translated; only "auto" has a translation.
+MODEL_SCHEMA_OPTIONS = [
+    SelectOptionDict(value=MODEL_AUTO, label=MODEL_AUTO),
+    *(SelectOptionDict(value=model, label=f"NIBE {model}") for model in MODELS),
+]
 
 
 class NibePiOptionsFlow(OptionsFlowWithReload):
-    """Options: language of the value labels.
+    """Options: language of the value labels and the pump model shown.
 
     Reloads only when the options change. An update listener would also fire on
     every MQTT discovery message, because HA records discovery keys on the entry.
@@ -53,23 +62,38 @@ class NibePiOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Choose the label language."""
+        """Choose the label language and, optionally, the pump model."""
         if user_input is not None:
             return self.async_create_entry(data=user_input)
-        current = self.config_entry.options.get(CONF_LANGUAGE, LANGUAGE_AUTO)
+        options = self.config_entry.options
+        hub = getattr(self.config_entry, "runtime_data", None)
+        detected = getattr(hub, "detected_model", None)
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_LANGUAGE, default=current): SelectSelector(
+                    vol.Required(
+                        CONF_LANGUAGE,
+                        default=options.get(CONF_LANGUAGE, LANGUAGE_AUTO),
+                    ): SelectSelector(
                         SelectSelectorConfig(
                             options=LANGUAGE_SCHEMA_OPTIONS,
                             translation_key=CONF_LANGUAGE,
                             mode=SelectSelectorMode.DROPDOWN,
                         )
-                    )
+                    ),
+                    vol.Required(
+                        CONF_MODEL, default=options.get(CONF_MODEL, MODEL_AUTO)
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=MODEL_SCHEMA_OPTIONS,
+                            translation_key=CONF_MODEL,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
+            description_placeholders={"detected_model": detected or "-"},
         )
 
 

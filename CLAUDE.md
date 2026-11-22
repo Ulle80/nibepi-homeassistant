@@ -16,6 +16,8 @@ HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerd
 - Schreibbare Entities standardmäßig deaktiviert außer `COMFORT_REGISTERS` (const.py).
 - Sprache der Wertebezeichnungen: `labels.py` (HA-frei, Tabelle en/de/sv/da/nb, Fallback nb). Entities zeigen `translate(label)`, Select schreibt über `_original_label` → `key_for_label`. Optionen per `OptionsFlowWithReload` – **kein** Update-Listener: der würde bei jeder MQTT-Discovery-Nachricht feuern (HA speichert discovery_keys am Entry) und die Integration endlos neu laden.
 - Neue Labels aus Modelldateien → `_ROWS`/`_ALIASES` in labels.py ergänzen; `tests/test_labels.py` listet alle schwedischen Labels.
+- Pumpenmodell: `pump_models.py` (HA-frei) gleicht die gesehenen Register mit `pump_model_data.py` ab (generiert per `scripts/generate_pump_models.py` aus NibePis `models/*.json`). Modell nur, wenn genau eine Modelldatei alle Register enthält; RMU40-Register zählen nicht. Optional fest gewählt (`CONF_MODEL`). **Nur Anzeige** (DeviceInfo, Diagnose) – keine Entities vom Modell abhängig machen.
+- Nicht angeschlossene Fühler (`NibeRegister.not_connected`): Sensor-Entities, die nie einen echten Wert hatten, deaktiviert der Hub (`disabled_by=INTEGRATION`, neue Entities starten deaktiviert); echter Wert → wieder aktiviert. Store merkt `connected` und `hidden_not_connected`, damit jede Entity nur einmal ausgeblendet wird und Nutzerentscheidungen bleiben.
 - Echte Testdaten: F1145 mit 102 Registern (siehe Tests `test_real_world_registers`, `test_mapping_from_info`).
 - Last Will `nibe` ist bei allen NibePis gleich → nach einem LWT wird das eigene Gerät per `/get` angepingt.
 - Unload: erst `hub.async_stop()` (MQTT ab), dann Plattformen, dann `async_save()`. Setup-Fehler nach dem Forwarding rollt die Plattformen zurück.
@@ -33,6 +35,7 @@ HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerd
 - Kein YAML-Setup, nur Config Flow.
 - Jede Änderung mit Tests (`pytest-homeassistant-custom-component`), Config Flow 100 % Coverage.
 - `ruff check` + `ruff format` müssen sauber sein. Typ-Hints überall.
+- README.md englisch, README.de.md deutsch – beide pflegen.
 - `manifest.json`: Keys alphabetisch (außer domain, name zuerst), Version bei Release erhöhen.
 
 ## Befehle
@@ -60,6 +63,6 @@ HACS installiert **Releases**, nicht `main`. Änderungen kommen beim Nutzer erst
 1. ~~Writable Register: `number`, `select`, `switch`~~ (erledigt, v0.2.0)
 2. ~~Nach Neustart Register aus Store laden und per `/get` abfragen~~ (erledigt, v0.3.0)
    - Offen: Register, die NibePi nicht mehr liefert (Modellwechsel), aufräumen → `stale-devices`/Entity-Removal
-3. ~~Diagnostics~~ (erledigt), ~~Entity-Kategorien~~ (erledigt); offen: disabled-by-default für Exoten-Register
+3. ~~Diagnostics~~ (erledigt), ~~Entity-Kategorien~~ (erledigt), ~~nicht angeschlossene Fühler ausblenden~~ (erledigt, v0.5.0)
 4. Climate/Water-Heater-Abstraktion für die gängigsten Register (40004, 40013, 47011 …)
 5. Brands-PR, HACS-Default-Repo

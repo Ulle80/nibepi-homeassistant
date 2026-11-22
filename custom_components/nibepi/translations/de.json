@@ -30,10 +30,12 @@
       "init": {
         "title": "NibePi-Optionen",
         "data": {
-          "language": "Sprache der Wertebezeichnungen"
+          "language": "Sprache der Wertebezeichnungen",
+          "model": "Pumpenmodell"
         },
         "data_description": {
-          "language": "Sprache für Zustände wie Betriebsart, Alarme oder Pumpenstatus. Automatisch nutzt die Sprache von Home Assistant, sonst Norwegisch."
+          "language": "Sprache für Zustände wie Betriebsart, Alarme oder Pumpenstatus. Automatisch nutzt die Sprache von Home Assistant, sonst Norwegisch.",
+          "model": "Wird am Gerät angezeigt. Automatisch erkennt es anhand der Register, die NibePi sendet (erkannt: {detected_model}). Ändert nicht, welche Entities es gibt."
         }
       }
     }
@@ -47,6 +49,11 @@
         "sv": "Svenska",
         "da": "Dansk",
         "nb": "Norsk (bokmål)"
+      }
+    },
+    "model": {
+      "options": {
+        "auto": "Automatisch"
       }
     }
   },

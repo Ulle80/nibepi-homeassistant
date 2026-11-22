@@ -57,6 +57,7 @@ Publiziert `homeassistant/sensor/<reg>/config` – nur Sensoren, **ohne** `uniqu
 - Explizite `map`-Labels sind fast nur in F730/F750/RMU40 und **schwedisch** (Alarme, „Från“, „Hastighet 1–4“), bei F1x45/F1x55 nur Strompreisstufe (CHEAP …). Alle anderen Wertetabellen stehen nur im `info`-Text (Englisch) → `_mapping_from_info`.
 - Bitfelder im `info` („Bit0=K4“, „b0:EM1-GP4“, „Binary encoded“) sind keine Wertetabellen.
 - Register 100xx (z.B. 10001 A-larm, 10020 Temporary Lux, 10060 RMU Temp) kommen aus den **RMU40**-Dateien, nicht aus dem Pumpenmodell.
+- Modellerkennung in der Integration: Teilmenge der gesehenen Register in genau einer Modelldatei. Beim Erst-Tester passen mit den 53 aktiven Nicht-RMU-Registern noch F1145/F1245 **und** F1355; erst Register wie 40074 entscheiden.
 - Pumpe des Erst-Testers: Live-Register passen zu F1145/F1245 (nur die 7 RMU-Register fehlen), nicht zu F1155/F1255 (13 fehlen).
 
 ## Konsequenzen fürs Design

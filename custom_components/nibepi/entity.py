@@ -68,9 +68,16 @@ class NibePiEntity(Entity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, hub.entry_id)},
             manufacturer="NIBE",
-            model="Heat pump (via NibePi)",
+            model=hub.device_model,
             name="NibePi",
         )
+        # Sensors of accessories that are not installed start disabled.
+        if (
+            register.kind is RegisterKind.SENSOR
+            and register.register in hub.hidden_not_connected
+            and register.register not in hub.connected
+        ):
+            self._attr_entity_registry_enabled_default = False
 
     @property
     def available(self) -> bool:

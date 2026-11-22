@@ -77,6 +77,7 @@ async def test_config_entry_diagnostics(
     }
     assert diagnostics["hub"] == {
         "available": True,
+        "hidden_not_connected": [],
         "register_count": 2,
         "registers_without_value": ["47137"],
     }

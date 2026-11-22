@@ -9,6 +9,9 @@ DOMAIN: Final = "nibepi"
 CONF_BASE_TOPIC: Final = "base_topic"
 CONF_LWT_TOPIC: Final = "lwt_topic"
 CONF_LANGUAGE: Final = "language"
+CONF_MODEL: Final = "model"
+MODEL_AUTO: Final = "auto"
+DEFAULT_DEVICE_MODEL: Final = "Heat pump (via NibePi)"
 
 # NibePi defaults (see default.json in anerdins/nibepi).
 DEFAULT_BASE_TOPIC: Final = "nibe/modbus/"

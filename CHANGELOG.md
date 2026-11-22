@@ -7,6 +7,10 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionier
 ### Hinzugefügt
 - **Sprache der Wertebezeichnungen** wählbar (Integration → Konfigurieren): Automatisch, Deutsch, Englisch, Schwedisch, Dänisch, Norwegisch. „Automatisch“ nutzt die Home-Assistant-Sprache, sonst Norwegisch. Übersetzt werden alle Zustände aus allen NibePi-Modelldateien (u.a. schwedische Alarme wie „Inga larm“, „Från“, Lüfterstufen), technische Kürzel bleiben unverändert.
 - Einrichtungs- und Optionsdialoge zusätzlich auf Schwedisch, Dänisch und Norwegisch
+- **Pumpenmodell am Gerät**: wird automatisch aus den gemeldeten Registern erkannt (Abgleich mit den NibePi-Modelldateien), sobald nur noch ein Modell passt, z.B. „F1145 / F1245“ (identische Modelldateien sind nicht unterscheidbar). Unter Konfigurieren lässt sich das Modell auch fest wählen. Nur zur Anzeige und Diagnose, es blendet keine Entities aus.
+- **Nicht angeschlossene Fühler werden automatisch ausgeblendet**: Sensoren, die nur „nicht angeschlossen“ melden (z.B. Vorlauf Heizkreis 2 ohne zweiten Heizkreis), werden deaktiviert. Liefern sie später echte Werte, werden sie wieder aktiviert. Ein Fühler, der schon einmal Werte geliefert hat, wird nie ausgeblendet, damit ein Defekt sichtbar bleibt. Von Hand wieder aktivierte oder deaktivierte Entities fasst die Integration nicht mehr an.
+- Diagnose enthält erkanntes/gewähltes Modell, mögliche Modelle und ausgeblendete Fühler
+- README auf Englisch (deutsche Fassung: README.de.md)
 
 ### Geändert
 - Gegen alle 22 NibePi-Modelldateien geprüft (F370 … F1355, VVM, SMO, RMU40, S1255)

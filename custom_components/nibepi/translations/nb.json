@@ -30,10 +30,12 @@
       "init": {
         "title": "NibePi-alternativer",
         "data": {
-          "language": "Språk for verdibetegnelser"
+          "language": "Språk for verdibetegnelser",
+          "model": "Varmepumpemodell"
         },
         "data_description": {
-          "language": "Språk for tilstander som driftsmodus, alarmer eller pumpestatus. Automatisk bruker språket i Home Assistant, ellers norsk."
+          "language": "Språk for tilstander som driftsmodus, alarmer eller pumpestatus. Automatisk bruker språket i Home Assistant, ellers norsk.",
+          "model": "Vises på enheten. Automatisk gjenkjenner den ut fra registrene NibePi sender (funnet: {detected_model}). Endrer ikke hvilke entiteter som finnes."
         }
       }
     }
@@ -47,6 +49,11 @@
         "sv": "Svenska",
         "da": "Dansk",
         "nb": "Norsk (bokmål)"
+      }
+    },
+    "model": {
+      "options": {
+        "auto": "Automatisk"
       }
     }
   },
