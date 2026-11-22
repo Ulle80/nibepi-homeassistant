@@ -50,6 +50,6 @@ Lokal unter Windows: HA lässt sich nativ nicht installieren (C-Extensions). Dah
 1. ~~Writable Register: `number`, `select`, `switch`~~ (erledigt, v0.2.0)
 2. ~~Nach Neustart Register aus Store laden und per `/get` abfragen~~ (erledigt, v0.3.0)
    - Offen: Register, die NibePi nicht mehr liefert (Modellwechsel), aufräumen → `stale-devices`/Entity-Removal
-3. Diagnostics, Entity-Kategorien, disabled-by-default für Exoten-Register
+3. ~~Diagnostics~~ (erledigt), ~~Entity-Kategorien~~ (erledigt); offen: disabled-by-default für Exoten-Register
 4. Climate/Water-Heater-Abstraktion für die gängigsten Register (40004, 40013, 47011 …)
 5. Brands-PR, HACS-Default-Repo

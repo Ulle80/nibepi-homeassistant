@@ -26,6 +26,9 @@ Schreibbare Register erscheinen als Konfigurations-Entities am Gerät. Nach dem 
 2. „NibePi“ installieren, HA neu starten
 3. Einstellungen → Geräte & Dienste: NibePi wird bei Standard-Topic automatisch gefunden, sonst „Integration hinzufügen“ → NibePi
 
+## Fehlersuche
+Einstellungen → Geräte & Dienste → NibePi → ⋮ → **Diagnose herunterladen**. Die Datei enthält Konfiguration, Verfügbarkeit und alle bekannten Register mit Definition, Entity-Typ und aktuellem Wert (keine Passwörter – die liegen in der MQTT-Integration). Bitte bei Issues anhängen.
+
 ## Entfernen
 Einstellungen → Geräte & Dienste → NibePi → Löschen; danach in HACS deinstallieren.
 
