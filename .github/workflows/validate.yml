@@ -14,8 +14,9 @@ jobs:
       - uses: home-assistant/actions/hassfest@master
 
   hacs:
-    # The HACS action can only validate public repositories.
-    if: ${{ !github.event.repository.private }}
+    # The HACS action can only validate public repositories. Explicit check:
+    # scheduled runs have no repository in the event payload.
+    if: ${{ github.event.repository.visibility == 'public' }}
     runs-on: ubuntu-latest
     steps:
       - uses: hacs/action@main
