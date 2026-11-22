@@ -8,7 +8,14 @@ HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerd
 - `hub.py` – `NibePiHub`: abonniert `<base>+/json` und LWT-Topic, hält `registers`, sendet Dispatcher-Signale (`SIGNAL_NEW_REGISTER`, `SIGNAL_REGISTER_UPDATE`, `SIGNAL_AVAILABILITY`), schreibt via `<base><reg>/set`.
 - `entity.py` – `NibePiEntity`-Basis (has_entity_name, unique_id `<entry_id>_<register>`, DeviceInfo).
 - Plattformen legen Entities **dynamisch** an, wenn ein neues Register auftaucht (`async_setup_register_platform`). `NibeRegister.kind` entscheidet: nur lesbar → `sensor`; R/W mit `map` → `select`; R/W, factor 1, 0..1, ohne Einheit → `switch`; sonst R/W → `number`. Jedes Register erzeugt genau eine Entity.
-- Schreiben immer über `NibeRegister.encode_value()` / `key_for_label()` – NibePi akzeptiert nur Zahlen und schneidet ab (siehe Protokoll-Doku).
+- Schreiben immer über `NibeRegister.encode_value()` / `key_for_label()` – NibePi akzeptiert nur Zahlen, schneidet ab und verwirft Werte über max. Nicht exakt kodierbare Werte (z.B. 4.35 bei max 435/factor 100) → `UnencodableValueError` → übersetzte `ServiceValidationError`.
+- Ändert sich die Definition eines bekannten Registers, wird sie übernommen, gespeichert und der Entry einmal neu geladen.
+- Last Will `nibe` ist bei allen NibePis gleich → nach einem LWT wird das eigene Gerät per `/get` angepingt.
+- Unload: erst `hub.async_stop()` (MQTT ab), dann Plattformen, dann `async_save()`. Setup-Fehler nach dem Forwarding rollt die Plattformen zurück.
+
+## Test-Konventionen
+- Kein pauschales `expected_lingering_timers`: `conftest.cancel_mqtt_misc_timer` beendet gezielt nur HAs MQTT-Timer.
+- Hintergrund-Tasks des Hubs: `await hass.async_block_till_done(wait_background_tasks=True)`.
 - `entry.runtime_data` = Hub (typisiert über `NibePiConfigEntry`).
 - Neustart: NibePi published nicht retained. Der Hub speichert Register-**Definitionen** (keine Werte) im HA-Store `nibepi.<entry_id>` (verzögert bei neuen Registern, sofort beim Unload), stellt sie beim Start wieder her und fragt fehlende Werte gedrosselt per `<base><reg>/get` ab (`REFRESH_REQUEST_DELAY`). `async_remove_entry` löscht den Store.
 

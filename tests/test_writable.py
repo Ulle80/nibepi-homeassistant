@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+
 from homeassistant.const import ATTR_ENTITY_ID, EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -16,6 +19,7 @@ from custom_components.nibepi.const import CONF_BASE_TOPIC, CONF_LWT_TOPIC, DOMA
 
 from .conftest import (
     ADJUST_AFFECT_PAYLOAD,
+    FLOW_LIMIT_PAYLOAD,
     OPERATIONAL_MODE_PAYLOAD,
     ROOM_SETPOINT_PAYLOAD,
 )
@@ -32,7 +36,9 @@ def assert_published(mqtt_mock: MqttMockHAClient, topic: str, payload: str) -> N
 
 
 @pytest.fixture
-async def setup_writable(hass: HomeAssistant, mqtt_mock: MqttMockHAClient):
+async def setup_writable(
+    hass: HomeAssistant, mqtt_mock: MqttMockHAClient
+) -> AsyncGenerator[None]:
     """Set up NibePi and announce the three writable registers."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -55,7 +61,6 @@ async def setup_writable(hass: HomeAssistant, mqtt_mock: MqttMockHAClient):
     await hass.async_block_till_done()
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 @pytest.mark.usefixtures("setup_writable")
 async def test_entities_created(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
@@ -83,7 +88,6 @@ async def test_entities_created(
     assert hass.states.get("sensor.nibepi_room_sensor_setpoint_s1") is None
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 @pytest.mark.usefixtures("setup_writable")
 async def test_number_writes_encoded_value(
     hass: HomeAssistant, mqtt_mock: MqttMockHAClient
@@ -98,7 +102,6 @@ async def test_number_writes_encoded_value(
     assert_published(mqtt_mock, "nibe/modbus/47398/set", "22.5")
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 @pytest.mark.usefixtures("setup_writable")
 async def test_switch_writes_numbers(
     hass: HomeAssistant, mqtt_mock: MqttMockHAClient
@@ -115,7 +118,6 @@ async def test_switch_writes_numbers(
     assert_published(mqtt_mock, "nibe/modbus/40881/set", "0")
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 @pytest.mark.usefixtures("setup_writable")
 async def test_select_writes_key(
     hass: HomeAssistant, mqtt_mock: MqttMockHAClient
@@ -130,7 +132,6 @@ async def test_select_writes_key(
     assert_published(mqtt_mock, "nibe/modbus/47137/set", "1")
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 @pytest.mark.usefixtures("setup_writable")
 async def test_state_follows_readback(hass: HomeAssistant) -> None:
     """After a write NibePi re-publishes the register; the entity follows."""
@@ -141,3 +142,32 @@ async def test_state_follows_readback(hass: HomeAssistant) -> None:
     )
     await hass.async_block_till_done()
     assert hass.states.get(SWITCH_ID).state == "on"
+
+
+@pytest.mark.usefixtures("setup_writable")
+async def test_unencodable_value_is_refused(
+    hass: HomeAssistant, mqtt_mock: MqttMockHAClient
+) -> None:
+    """A value NibePi cannot store exactly is refused, nothing is published."""
+    async_fire_mqtt_message(hass, "nibe/modbus/47500/json", FLOW_LIMIT_PAYLOAD)
+    await hass.async_block_till_done()
+    mqtt_mock.async_publish.reset_mock()
+
+    with pytest.raises(ServiceValidationError) as exc_info:
+        await hass.services.async_call(
+            "number",
+            "set_value",
+            {ATTR_ENTITY_ID: "number.nibepi_flow_limit", "value": 4.35},
+            blocking=True,
+        )
+    assert exc_info.value.translation_key == "value_not_writable"
+    mqtt_mock.async_publish.assert_not_called()
+
+    # One step below the limit is fine.
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {ATTR_ENTITY_ID: "number.nibepi_flow_limit", "value": 4.34},
+        blocking=True,
+    )
+    assert_published(mqtt_mock, "nibe/modbus/47500/set", "4.34")

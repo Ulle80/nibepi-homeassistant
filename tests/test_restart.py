@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
 
@@ -29,7 +30,7 @@ SETPOINT_ID = "number.nibepi_room_sensor_setpoint_s1"
 
 
 @pytest.fixture(autouse=True)
-def no_refresh_delay():
+def no_refresh_delay() -> Generator[None]:
     """Do not wait between /get requests in tests."""
     with patch("custom_components.nibepi.hub.REFRESH_REQUEST_DELAY", 0):
         yield
@@ -55,7 +56,6 @@ def _get_requests(mqtt_mock: MqttMockHAClient) -> list[str]:
     ]
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_restored_registers_are_requested(
     hass: HomeAssistant,
     mqtt_mock: MqttMockHAClient,
@@ -77,7 +77,7 @@ async def test_restored_registers_are_requested(
     }
 
     assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
     # Entities exist right away, but without a value they are unavailable.
     assert hass.states.get(TEMP_ID).state == "unavailable"
@@ -89,14 +89,13 @@ async def test_restored_registers_are_requested(
 
     # NibePi answers the /get with the regular publish.
     async_fire_mqtt_message(hass, "nibe/modbus/40004/json", OUTDOOR_TEMP_PAYLOAD)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.states.get(TEMP_ID).state == "-3.5"
 
     assert await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_registers_survive_reload(
     hass: HomeAssistant,
     mqtt_mock: MqttMockHAClient,
@@ -105,13 +104,13 @@ async def test_registers_survive_reload(
 ) -> None:
     """Registers seen once are persisted on unload and restored on next setup."""
     assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert _get_requests(mqtt_mock) == []  # nothing known yet, nothing to ask
 
     async_fire_mqtt_message(hass, "nibe/modbus/40004/json", OUTDOOR_TEMP_PAYLOAD)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
     stored = hass_storage[STORAGE_KEY.format(entry_id=entry.entry_id)]["data"]
     assert [r["register"] for r in stored["registers"]] == ["40004"]
@@ -119,15 +118,14 @@ async def test_registers_survive_reload(
 
     mqtt_mock.async_publish.reset_mock()
     assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.states.get(TEMP_ID).state == "unavailable"
     assert _get_requests(mqtt_mock) == ["nibe/modbus/40004/get"]
 
     assert await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_remove_entry_deletes_store(
     hass: HomeAssistant,
     mqtt_mock: MqttMockHAClient,
@@ -136,10 +134,10 @@ async def test_remove_entry_deletes_store(
 ) -> None:
     """Removing the integration also removes its stored registers."""
     assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     async_fire_mqtt_message(hass, "nibe/modbus/40004/json", OUTDOOR_TEMP_PAYLOAD)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
     assert await hass.config_entries.async_remove(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert STORAGE_KEY.format(entry_id=entry.entry_id) not in hass_storage

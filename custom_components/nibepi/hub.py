@@ -9,6 +9,7 @@ from typing import Any
 
 from homeassistant.components import mqtt
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
@@ -51,11 +52,20 @@ class NibePiHub:
         self.available = True
         self._unsubscribers: list[Callable[[], None]] = []
         self._store = async_get_store(hass, entry_id)
-        self._refresh_task: asyncio.Task[None] | None = None
+        self._tasks: set[asyncio.Task[None]] = set()
+        self._reload_scheduled = False
 
     async def async_start(self) -> None:
         """Restore known registers, subscribe, then request current values."""
         await self._async_restore_registers()
+        await self.async_subscribe()
+        if self.registers:
+            self._start_task(
+                self._async_request_values(list(self.registers)), "refresh"
+            )
+
+    async def async_subscribe(self) -> None:
+        """Subscribe to the register and last-will topics."""
         self._unsubscribers.append(
             await mqtt.async_subscribe(
                 self.hass,
@@ -69,21 +79,27 @@ class NibePiHub:
                     self.hass, self.lwt_topic, self._handle_lwt_message
                 )
             )
-        if self.registers:
-            self._refresh_task = self.hass.async_create_background_task(
-                self._async_request_missing_values(list(self.registers)),
-                name=f"nibepi refresh {self.entry_id}",
-            )
 
-    async def async_shutdown(self) -> None:
-        """Unsubscribe, stop requesting values and persist known registers."""
+    @callback
+    def async_stop(self) -> None:
+        """Stop receiving messages and cancel pending requests."""
         while self._unsubscribers:
             self._unsubscribers.pop()()
-        if self._refresh_task is not None:
-            self._refresh_task.cancel()
-            self._refresh_task = None
+        while self._tasks:
+            self._tasks.pop().cancel()
+
+    async def async_save(self) -> None:
+        """Persist the known register definitions now."""
         if self.registers:
             await self._store.async_save(self._data_to_store())
+
+    @callback
+    def _start_task(self, coro: Any, name: str) -> None:
+        task = self.hass.async_create_background_task(
+            coro, name=f"nibepi {name} {self.entry_id}"
+        )
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
 
     async def _async_restore_registers(self) -> None:
         """Recreate entities for registers seen before the last restart."""
@@ -102,19 +118,25 @@ class NibePiHub:
             )
         _LOGGER.debug("Restored %s registers", len(self.registers))
 
-    async def _async_request_missing_values(self, registers: list[str]) -> None:
-        """Ask NibePi for every restored register that has no value yet.
+    async def _async_request_values(
+        self, registers: list[str], *, only_missing: bool = True
+    ) -> None:
+        """Ask NibePi to read registers; it answers on the normal topics.
 
-        NibePi reads the register and publishes it on the normal topics.
-        Requests are spaced out because each one becomes an RS485 read.
+        Requests are spaced out because each one becomes an RS485 read. A failed
+        publish (e.g. broker flapping right after start) skips that register
+        instead of aborting the whole run.
         """
         for address in registers:
             register = self.registers.get(address)
-            if register is None or register.value is not None:
+            if register is None or (only_missing and register.value is not None):
                 continue
-            await mqtt.async_publish(
-                self.hass, f"{self.base_topic}{address}{TOPIC_SUFFIX_GET}", ""
-            )
+            try:
+                await mqtt.async_publish(
+                    self.hass, f"{self.base_topic}{address}{TOPIC_SUFFIX_GET}", ""
+                )
+            except HomeAssistantError as err:
+                _LOGGER.warning("Could not request register %s: %s", address, err)
             await asyncio.sleep(REFRESH_REQUEST_DELAY)
 
     @callback
@@ -134,7 +156,8 @@ class NibePiHub:
             return
 
         self._set_available(True)
-        if (known := self.registers.get(register.register)) is None:
+        known = self.registers.get(register.register)
+        if known is None:
             self.registers[register.register] = register
             self._store.async_delay_save(self._data_to_store, STORAGE_SAVE_DELAY)
             async_dispatcher_send(
@@ -142,6 +165,17 @@ class NibePiHub:
                 SIGNAL_NEW_REGISTER.format(entry_id=self.entry_id),
                 register,
             )
+            return
+
+        if known.as_definition() != register.as_definition():
+            # Metadata changed (e.g. other pump model / NibePi update). Entities
+            # derive limits, units and type from it, so rebuild them once.
+            _LOGGER.info("Definition of register %s changed", register.register)
+            self.registers[register.register] = register
+            self._store.async_delay_save(self._data_to_store, STORAGE_SAVE_DELAY)
+            if not self._reload_scheduled:
+                self._reload_scheduled = True
+                self.hass.config_entries.async_schedule_reload(self.entry_id)
             return
 
         known.update_from(register)
@@ -155,8 +189,16 @@ class NibePiHub:
     @callback
     def _handle_lwt_message(self, msg: mqtt.ReceiveMessage) -> None:
         payload = str(msg.payload).strip()
-        if payload.endswith(LWT_DISCONNECTED_SUFFIX):
-            self._set_available(False)
+        if not payload.endswith(LWT_DISCONNECTED_SUFFIX):
+            return
+        self._set_available(False)
+        # NibePi's last-will topic is hardcoded and shared by every NibePi on the
+        # broker, so the will may belong to another device. Probe ours: if it
+        # is alive it answers and becomes available again right away.
+        if probe := next(iter(self.registers), None):
+            self._start_task(
+                self._async_request_values([probe], only_missing=False), "probe"
+            )
 
     @callback
     def _set_available(self, available: bool) -> None:

@@ -18,11 +18,16 @@
       }
     },
     "error": {
-      "invalid_topic": "Das Basis-Topic darf nicht leer sein und keine MQTT-Wildcards (+, #) enthalten."
+      "invalid_topic": "Topics dürfen keine MQTT-Wildcards (+, #) enthalten, und das Basis-Topic darf nicht leer sein."
     },
     "abort": {
       "already_configured": "Dieser NibePi ist bereits eingerichtet.",
       "invalid_discovery_info": "Ungültige Discovery-Informationen empfangen."
+    }
+  },
+  "exceptions": {
+    "value_not_writable": {
+      "message": "{value} kann nicht exakt in {entity} geschrieben werden: NibePi würde einen anderen Wert speichern. Wähle einen Wert eine Stufe niedriger oder höher."
     }
   }
 }

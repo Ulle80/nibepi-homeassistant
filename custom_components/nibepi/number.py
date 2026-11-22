@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import NibePiConfigEntry
+from .const import DOMAIN
 from .entity import NibePiWritableEntity, async_setup_register_platform
 from .hub import NibePiHub
-from .models import NibeRegister, RegisterKind
+from .models import NibeRegister, RegisterKind, UnencodableValueError
 from .sensor import UNIT_MAP
 
 PARALLEL_UPDATES = 1
@@ -55,4 +57,15 @@ class NibePiNumber(NibePiWritableEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Write a new value."""
-        await self._async_write(self._register.encode_value(value))
+        try:
+            payload = self._register.encode_value(value)
+        except UnencodableValueError as err:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="value_not_writable",
+                translation_placeholders={
+                    "value": str(value),
+                    "entity": self.name or self._register.title,
+                },
+            ) from err
+        await self._async_write(payload)

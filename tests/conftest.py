@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 import json
 
+from homeassistant.components.mqtt.models import DATA_MQTT
+from homeassistant.core import HomeAssistant
 import pytest
 
 pytest_plugins = ["pytest_homeassistant_custom_component"]
@@ -95,8 +98,44 @@ OPERATIONAL_MODE_PAYLOAD = json.dumps(
     }
 )
 
+# Writable, factor 100, max exactly 4.35 -> the max cannot be encoded exactly.
+FLOW_LIMIT_PAYLOAD = json.dumps(
+    {
+        "register": "47500",
+        "factor": 100,
+        "size": "s16",
+        "mode": "R/W",
+        "titel": "Flow limit",
+        "info": "",
+        "unit": "",
+        "min": "0",
+        "max": "435",
+        "data": 1.0,
+        "raw_data": 100,
+    }
+)
+
 
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
+def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable loading custom_components in every test."""
     return
+
+
+@pytest.fixture(autouse=True)
+def cancel_mqtt_misc_timer(request: pytest.FixtureRequest) -> Generator[None]:
+    """Cancel only HA's MQTT misc timer after tests that use the MQTT mock.
+
+    The mocked paho client never closes a socket, so HA's MQTT client keeps its
+    1 s misc timer scheduled. Cancelling exactly that timer keeps the
+    lingering-timer check active for everything the integration schedules.
+    """
+    if "mqtt_mock" not in request.fixturenames:
+        yield
+        return
+    hass: HomeAssistant = request.getfixturevalue("hass")
+    yield
+    if (mqtt_data := hass.data.get(DATA_MQTT)) and (
+        timer := mqtt_data.client._misc_timer
+    ):
+        timer.cancel()

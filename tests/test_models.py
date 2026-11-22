@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from custom_components.nibepi.models import (
     InvalidRegisterPayloadError,
     NibeRegister,
     RegisterKind,
+    UnencodableValueError,
 )
 
 from .conftest import (
@@ -66,6 +69,30 @@ def test_encode_value_survives_truncation(
     payload = reg.encode_value(value)
     # Emulate NibePi: JS Number(payload) * factor, then int32 truncation.
     assert int(float(payload) * factor) == expected_raw
+
+
+def test_encode_value_stays_within_range() -> None:
+    """Near a limit the payload must not overshoot max (NibePi drops it)."""
+    reg = NibeRegister(register="1", title="x", factor=100, min=0, max=1000)
+    payload = reg.encode_value(4.35)
+    product = float(payload) * 100
+    assert int(product) == 435
+    assert product <= 1000
+
+
+def test_encode_value_refuses_impossible_limit() -> None:
+    """4.35 at max 435 / factor 100 has no exact encoding - refuse it."""
+    reg = NibeRegister(register="1", title="x", factor=100, min=0, max=435)
+    with pytest.raises(UnencodableValueError):
+        reg.encode_value(4.35)
+    assert reg.encode_value(4.34) == "4.34"
+
+
+@pytest.mark.parametrize(("mode", "writable"), [("R/W", True), ("r/w", False)])
+def test_writable_requires_exact_mode(mode: str, writable: bool) -> None:
+    """Only exactly 'R/W' is writable, like NibePi's own check."""
+    payload = json.loads(ROOM_SETPOINT_PAYLOAD) | {"mode": mode}
+    assert NibeRegister.from_payload(json.dumps(payload)).writable is writable
 
 
 def test_definition_roundtrip() -> None:

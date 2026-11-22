@@ -23,6 +23,10 @@ def _normalize_base_topic(topic: str) -> str:
     return topic if topic.endswith("/") else f"{topic}/"
 
 
+def _has_wildcard(topic: str) -> bool:
+    return "#" in topic or "+" in topic
+
+
 class NibePiConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for NibePi."""
 
@@ -72,16 +76,19 @@ class NibePiConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             base = _normalize_base_topic(user_input[CONF_BASE_TOPIC])
-            if base == "/" or "#" in base or "+" in base:
+            lwt = user_input.get(CONF_LWT_TOPIC, "").strip()
+            if base == "/" or _has_wildcard(base):
                 errors[CONF_BASE_TOPIC] = "invalid_topic"
-            else:
+            if _has_wildcard(lwt):
+                errors[CONF_LWT_TOPIC] = "invalid_topic"
+            if not errors:
                 await self.async_set_unique_id(base)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title="NibePi",
                     data={
                         CONF_BASE_TOPIC: base,
-                        CONF_LWT_TOPIC: user_input.get(CONF_LWT_TOPIC, "").strip(),
+                        CONF_LWT_TOPIC: lwt,
                     },
                 )
 

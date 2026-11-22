@@ -18,11 +18,16 @@
       }
     },
     "error": {
-      "invalid_topic": "The base topic must not be empty or contain MQTT wildcards (+, #)."
+      "invalid_topic": "Topics must not contain MQTT wildcards (+, #), and the base topic must not be empty."
     },
     "abort": {
       "already_configured": "This NibePi is already configured.",
       "invalid_discovery_info": "Received invalid discovery information."
+    }
+  },
+  "exceptions": {
+    "value_not_writable": {
+      "message": "{value} cannot be written exactly to {entity}: NibePi would store a different value. Choose a value one step lower or higher."
     }
   }
 }

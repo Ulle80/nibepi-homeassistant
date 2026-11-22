@@ -17,6 +17,10 @@ class InvalidRegisterPayloadError(ValueError):
     """Raised when a /json payload cannot be parsed into a register."""
 
 
+class UnencodableValueError(ValueError):
+    """Raised when NibePi's float truncation cannot produce the wanted value."""
+
+
 class RegisterKind(StrEnum):
     """Which Home Assistant entity type represents a register."""
 
@@ -130,18 +134,39 @@ class NibeRegister:
         NibePi computes ``payload * factor`` in JavaScript and truncates the
         result to an integer (no rounding). With binary floats, e.g. ``4.35 * 100``
         is ``434.99999999999994`` and would be written as 434. Python floats are
-        the same IEEE 754 doubles, so we can check and nudge the payload.
+        the same IEEE 754 doubles, so we can check candidates exactly.
+
+        NibePi also drops (not clamps-and-sends) any value whose product exceeds
+        the raw min/max, so a candidate must stay inside that range: at the
+        limit only a product of exactly ``raw`` is acceptable.
         """
         raw = round(value * self.factor)
         if self.factor == 1:
             return str(raw)
+        low = self.min if self.min is not None else -math.inf
+        high = self.max if self.max is not None else math.inf
+
+        def accepted(text: str) -> bool:
+            product = float(text) * self.factor
+            return int(product) == raw and low <= product <= high
+
         decimals = max(0, math.ceil(math.log10(self.factor)))
         text = f"{raw / self.factor:.{decimals}f}"
-        if int(float(text) * self.factor) == raw:
+        if accepted(text):
             return text
-        # Nudge away from zero by a tenth of a step; truncation lands on raw.
-        nudged = (raw + math.copysign(0.1, raw)) / self.factor
-        return f"{nudged:.{decimals + 1}f}"
+        # Walk to neighbouring doubles away from zero: the first one whose
+        # product reaches raw is the smallest possible overshoot.
+        direction = math.copysign(math.inf, raw)
+        candidate = raw / self.factor
+        for _ in range(8):
+            candidate = math.nextafter(candidate, direction)
+            if accepted(text := repr(candidate)):
+                return text
+        # E.g. 4.35 with factor 100 and max 435: every double either truncates
+        # to 434 or exceeds max. Refuse instead of writing something else.
+        raise UnencodableValueError(
+            f"{value} cannot be written exactly to register {self.register}"
+        )
 
     @classmethod
     def from_payload(cls, payload: str | bytes) -> NibeRegister:
@@ -173,7 +198,8 @@ class NibeRegister:
             info=str(data.get("info") or ""),
             factor=factor,
             size=str(data.get("size") or "s16"),
-            writable=str(data.get("mode", "R")).upper() == "R/W",
+            # NibePi's setDataValue only writes for exactly "R/W".
+            writable=data.get("mode") == "R/W",
             min=min_,
             max=max_,
             mapping=mapping,

@@ -6,7 +6,7 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 
 from .const import CONF_BASE_TOPIC, CONF_LWT_TOPIC, DEFAULT_LWT_TOPIC
 from .hub import NibePiHub, async_get_store
@@ -37,14 +37,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: NibePiConfigEntry) -> bo
     # Platforms first, so their dispatcher listeners exist before the hub
     # restores stored registers or messages arrive.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await hub.async_start()
+    try:
+        await hub.async_start()
+    except HomeAssistantError as err:
+        # Roll back, otherwise the forwarded platforms stay loaded and every
+        # retry fails with "already set up".
+        hub.async_stop()
+        await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        raise ConfigEntryNotReady(f"Could not start NibePi: {err}") from err
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: NibePiConfigEntry) -> bool:
     """Unload a config entry."""
-    if unloaded := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        await entry.runtime_data.async_shutdown()
+    hub = entry.runtime_data
+    # Stop messages first, so nothing is added to platforms while they unload.
+    hub.async_stop()
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await hub.async_save()
+    if not unloaded:
+        await hub.async_subscribe()
     return unloaded
 
 

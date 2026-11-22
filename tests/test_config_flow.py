@@ -38,6 +38,18 @@ async def test_user_flow_rejects_wildcards(hass: HomeAssistant) -> None:
     assert result["errors"] == {CONF_BASE_TOPIC: "invalid_topic"}
 
 
+async def test_user_flow_rejects_wildcard_lwt(hass: HomeAssistant) -> None:
+    """Wildcards in the last-will topic are rejected too."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_BASE_TOPIC: "nibe/modbus/", CONF_LWT_TOPIC: "#"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_LWT_TOPIC: "invalid_topic"}
+
+
 async def test_mqtt_discovery_invalid_topic(hass: HomeAssistant) -> None:
     """Discovery on a topic that is not a /json register topic aborts."""
     info = MqttServiceInfo(

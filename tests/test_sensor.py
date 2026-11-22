@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
-import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_mqtt_message,
@@ -15,9 +14,6 @@ from custom_components.nibepi.const import CONF_BASE_TOPIC, CONF_LWT_TOPIC, DOMA
 from .conftest import OUTDOOR_TEMP_PAYLOAD, PRICE_LEVEL_PAYLOAD
 
 
-# The mocked MQTT client never closes a socket, so HA's MQTT misc timer stays
-# scheduled after the test (same marker HA core uses for this).
-@pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_sensors_created_from_mqtt(
     hass: HomeAssistant, mqtt_mock: MqttMockHAClient
 ) -> None:
