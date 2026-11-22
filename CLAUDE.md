@@ -7,7 +7,8 @@ HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerd
 - `models.py` – reines Python, **keine HA-Imports**. Parsing der `/json`-Payloads → `NibeRegister`. Soll später als eigene PyPI-Lib ausgelagert werden können (Core-Pflicht).
 - `hub.py` – `NibePiHub`: abonniert `<base>+/json` und LWT-Topic, hält `registers`, sendet Dispatcher-Signale (`SIGNAL_NEW_REGISTER`, `SIGNAL_REGISTER_UPDATE`, `SIGNAL_AVAILABILITY`), schreibt via `<base><reg>/set`.
 - `entity.py` – `NibePiEntity`-Basis (has_entity_name, unique_id `<entry_id>_<register>`, DeviceInfo).
-- Plattformen legen Entities **dynamisch** an, wenn ein neues Register auftaucht.
+- Plattformen legen Entities **dynamisch** an, wenn ein neues Register auftaucht (`async_setup_register_platform`). `NibeRegister.kind` entscheidet: nur lesbar → `sensor`; R/W mit `map` → `select`; R/W, factor 1, 0..1, ohne Einheit → `switch`; sonst R/W → `number`. Jedes Register erzeugt genau eine Entity.
+- Schreiben immer über `NibeRegister.encode_value()` / `key_for_label()` – NibePi akzeptiert nur Zahlen und schneidet ab (siehe Protokoll-Doku).
 - `entry.runtime_data` = Hub (typisiert über `NibePiConfigEntry`).
 
 ## Standards (verbindlich)
@@ -38,7 +39,7 @@ Lokal unter Windows: HA lässt sich nativ nicht installieren (C-Extensions). Dah
 - `nibepi-protocol-researcher` – recherchiert im NibePi-Quellcode (Topics, Register, Modelle)
 
 ## Roadmap
-1. Writable Register: `number` (numerisch, min/max skaliert), `select` (mit `map`), ggf. `switch` (0/1)
+1. ~~Writable Register: `number`, `select`, `switch`~~ (erledigt, v0.2.0)
 2. Nach Neustart Register-Liste aus Entry/Store laden und per `/get` aktiv abfragen (NibePi published nicht retained)
 3. Diagnostics, Entity-Kategorien, disabled-by-default für Exoten-Register
 4. Climate/Water-Heater-Abstraktion für die gängigsten Register (40004, 40013, 47011 …)

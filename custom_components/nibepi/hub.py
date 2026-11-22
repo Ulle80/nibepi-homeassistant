@@ -100,8 +100,12 @@ class NibePiHub:
             self.hass, SIGNAL_AVAILABILITY.format(entry_id=self.entry_id)
         )
 
-    async def async_write(self, register: str, value: float | int | str) -> None:
-        """Write a value (in display units) to a register."""
+    async def async_write(self, register: str, payload: str) -> None:
+        """Send an already encoded value to a register.
+
+        NibePi gives no feedback on MQTT; on success it reads the register back
+        and publishes the new value, which updates the entity.
+        """
         await mqtt.async_publish(
-            self.hass, f"{self.base_topic}{register}{TOPIC_SUFFIX_SET}", str(value)
+            self.hass, f"{self.base_topic}{register}{TOPIC_SUFFIX_SET}", payload
         )

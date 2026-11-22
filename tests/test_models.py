@@ -4,9 +4,76 @@ from __future__ import annotations
 
 import pytest
 
-from custom_components.nibepi.models import InvalidRegisterPayloadError, NibeRegister
+from custom_components.nibepi.models import (
+    InvalidRegisterPayloadError,
+    NibeRegister,
+    RegisterKind,
+)
 
-from .conftest import OUTDOOR_TEMP_PAYLOAD, PRICE_LEVEL_PAYLOAD
+from .conftest import (
+    ADJUST_AFFECT_PAYLOAD,
+    OPERATIONAL_MODE_PAYLOAD,
+    OUTDOOR_TEMP_PAYLOAD,
+    PRICE_LEVEL_PAYLOAD,
+    ROOM_SETPOINT_PAYLOAD,
+)
+
+
+@pytest.mark.parametrize(
+    ("payload", "kind"),
+    [
+        (OUTDOOR_TEMP_PAYLOAD, RegisterKind.SENSOR),
+        (PRICE_LEVEL_PAYLOAD, RegisterKind.SENSOR),
+        (ROOM_SETPOINT_PAYLOAD, RegisterKind.NUMBER),
+        (ADJUST_AFFECT_PAYLOAD, RegisterKind.SWITCH),
+        (OPERATIONAL_MODE_PAYLOAD, RegisterKind.SELECT),
+    ],
+)
+def test_kind(payload: str, kind: RegisterKind) -> None:
+    """Registers map to the right entity type."""
+    assert NibeRegister.from_payload(payload).kind is kind
+
+
+def test_number_limits_and_step() -> None:
+    """Limits are scaled; step follows the factor."""
+    reg = NibeRegister.from_payload(ROOM_SETPOINT_PAYLOAD)
+    assert reg.limits == (5.0, 35.0)
+    assert reg.step == 0.1
+
+
+def test_limits_fall_back_to_size() -> None:
+    """Without min/max (0/0) the register size defines the range."""
+    reg = NibeRegister(register="1", title="x", factor=10, size="s16")
+    assert reg.limits == (-3276.8, 3276.7)
+
+
+@pytest.mark.parametrize(
+    ("factor", "value", "expected_raw"),
+    [
+        (1, 3, 3),
+        (10, 21.5, 215),
+        (10, -3.3, -33),
+        (100, 4.35, 435),  # 4.35 * 100 == 434.99999999999994 in IEEE 754
+        (100, -4.35, -435),
+        (10, 0, 0),
+    ],
+)
+def test_encode_value_survives_truncation(
+    factor: int, value: float, expected_raw: int
+) -> None:
+    """NibePi truncates payload*factor; the encoded payload must still hit raw."""
+    reg = NibeRegister(register="1", title="x", factor=factor)
+    payload = reg.encode_value(value)
+    # Emulate NibePi: JS Number(payload) * factor, then int32 truncation.
+    assert int(float(payload) * factor) == expected_raw
+
+
+def test_key_for_label() -> None:
+    """Labels translate back to the numeric key NibePi expects."""
+    reg = NibeRegister.from_payload(OPERATIONAL_MODE_PAYLOAD)
+    assert reg.key_for_label("Manual") == "1"
+    with pytest.raises(ValueError, match="Unknown option"):
+        reg.key_for_label("Turbo")
 
 
 def test_parse_temperature() -> None:
@@ -24,10 +91,11 @@ def test_parse_temperature() -> None:
 
 
 def test_parse_mapped_register() -> None:
-    """A register with a value map is an enum and writable."""
+    """A read-only register with a value map is an enum sensor."""
     reg = NibeRegister.from_payload(PRICE_LEVEL_PAYLOAD)
     assert reg.is_enum
-    assert reg.writable
+    assert not reg.writable
+    assert reg.kind is RegisterKind.SENSOR
     assert reg.mapping == {
         "0": "UNKNOWN",
         "1": "CHEAP",

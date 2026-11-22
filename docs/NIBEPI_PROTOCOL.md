@@ -35,6 +35,15 @@ Pro Register (bei jeder Wertänderung, `retain: false`):
 | `<base><reg>/add` | Register zur Polling-Liste hinzufügen |
 | `<base><reg>/remove` | Register aus Polling-Liste entfernen |
 
+### Schreib-Semantik (`setData`/`setDataValue` in index.js)
+- Payload wird **nicht** geparst, sondern implizit per `payload * factor` (JS) zu einer Zahl. Nicht-numerisch → `NaN` → wird vermutlich als **0** geschrieben (kein Reject!). → Nur Zahlen senden; bei `map`-Registern den **Schlüssel** (`"1"`), nie das Label. Schalter: `"1"`/`"0"`, nie `on`/`true`.
+- Ergebnis wird **abgeschnitten**, nicht gerundet (Bitmasken). `4.35 * 100 = 434.99999…` → 434. Die Integration kodiert deshalb in `NibeRegister.encode_value()` so, dass die Trunkierung exakt den Zielwert trifft.
+- min/max-Prüfung auf dem **skalierten** Wert gegen die rohen min/max. Außerhalb → geklemmt, als corrupt markiert und **nicht** gesendet. HA muss die Grenzen also selbst durchsetzen.
+- Schreibbar nur bei exakt `mode == "R/W"`; RMU-Schattenregister werden zur Laufzeit auf `R` gezwungen.
+- Nach erfolgreichem Senden: `reqData(address)` → Register wird zurückgelesen und über die normalen drei Topics publiziert (sofort, oder beim nächsten Poll, wenn es ohnehin gepollt wird).
+- **Kein** Ack/Fehler per MQTT. Ablehnungen landen nur im NibePi-Log.
+- 0/1-Register mit R/W, z.B. F750 `40881–40888` „=+Adjust Affect system1..8“ (u8, min 0, max 1).
+
 ### Verfügbarkeit
 Kein Availability-Topic. Last Will ist **hart kodiert** auf Topic `nibe` (nicht unter base!), Payload `nibe_<8hex> disconnected`, nicht retained.
 

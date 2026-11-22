@@ -11,7 +11,12 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import CONF_BASE_TOPIC, CONF_LWT_TOPIC, DEFAULT_LWT_TOPIC
 from .hub import NibePiHub
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.SWITCH,
+]
 
 type NibePiConfigEntry = ConfigEntry[NibePiHub]
 

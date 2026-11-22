@@ -17,15 +17,16 @@ from homeassistant.const import (
     UnitOfTime,
     UnitOfVolumeFlowRate,
 )
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import NibePiConfigEntry
-from .const import SIGNAL_NEW_REGISTER
-from .entity import NibePiEntity
+from .entity import NibePiEntity, async_setup_register_platform
 from .hub import NibePiHub
-from .models import NibeRegister
+from .models import NibeRegister, RegisterKind
+
+# Push-based, nothing to parallelize.
+PARALLEL_UPDATES = 0
 
 # NibePi unit string -> (HA unit, device class)
 UNIT_MAP: dict[str, tuple[str | None, SensorDeviceClass | None]] = {
@@ -48,19 +49,9 @@ async def async_setup_entry(
     entry: NibePiConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add sensors for every register NibePi announces."""
-    hub = entry.runtime_data
-
-    @callback
-    def _async_new_register(register: NibeRegister) -> None:
-        async_add_entities([NibePiSensor(hub, register)])
-
-    entry.async_on_unload(
-        async_dispatcher_connect(
-            hass,
-            SIGNAL_NEW_REGISTER.format(entry_id=entry.entry_id),
-            _async_new_register,
-        )
+    """Add sensors for every read-only register NibePi announces."""
+    async_setup_register_platform(
+        hass, entry, async_add_entities, RegisterKind.SENSOR, NibePiSensor
     )
 
 
