@@ -2,9 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [0.4.0] – 2026-11-22
 
-Erkenntnisse aus dem ersten Test an einer echten F1255.
+Erkenntnisse aus dem ersten Test an einer echten F1255 (102 Register, läuft stabil).
+
+> Hinweis zum Update: Bereits angelegte schreibbare Entities bleiben aktiv – Home Assistant übernimmt „standardmäßig deaktiviert“ nur für neue Entities. Nicht benötigte Steuer-Entities unter Gerät → Entities selbst deaktivieren.
 
 ### Geändert
 - **Schreibbare Register sind standardmäßig deaktiviert**, außer üblichen Komfort-Einstellungen (Heizkurve, Kurvenverschiebung, Raum-Sollwert S1–S4, Warmwasser-Komfortmodus, Temporary Lux). Bereits angelegte Entities bleiben unverändert.
@@ -41,4 +43,5 @@ Erstes Release. **Noch nicht gegen echte NibePi-Hardware getestet.**
 - Automatische Erkennung nur für das Standard-Basis-Topic; sonst manuell einrichten
 - NibePi-eigene HA-Discovery bitte abschalten, sonst doppelte Sensoren
 
+[0.4.0]: https://github.com/Ulle80/nibepi-homeassistant/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Ulle80/nibepi-homeassistant/releases/tag/v0.3.0

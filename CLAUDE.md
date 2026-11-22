@@ -51,6 +51,9 @@ Lokal unter Windows: HA lässt sich nativ nicht installieren (C-Extensions). Dah
 - `ha-test-engineer` – schreibt/erweitert Tests
 - `nibepi-protocol-researcher` – recherchiert im NibePi-Quellcode (Topics, Register, Modelle)
 
+## Releases
+HACS installiert **Releases**, nicht `main`. Änderungen kommen beim Nutzer erst an mit: Version in `manifest.json` + `pyproject.toml` erhöhen, CHANGELOG-Abschnitt, Commit, CI grün, dann `gh release create vX.Y.Z --target <volle SHA> --notes-file …`.
+
 ## Roadmap
 1. ~~Writable Register: `number`, `select`, `switch`~~ (erledigt, v0.2.0)
 2. ~~Nach Neustart Register aus Store laden und per `/get` abfragen~~ (erledigt, v0.3.0)
