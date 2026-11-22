@@ -1,7 +1,7 @@
 # CLAUDE.md – NibePi Home Assistant Integration
 
 ## Ziel
-HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerdins/nibepi) (RPi + RS485 an NIBE F-Serie). Kommunikation ausschließlich über HAs MQTT-Integration (`dependencies: ["mqtt"]`), `iot_class: local_push`. Protokolldetails: `docs/NIBEPI_PROTOCOL.md` – vor Änderungen an Topics/Parsing lesen.
+Custom-Integration `nibepi` für den HA-Marketplace (ab 2026.11, vorher HACS; braucht weiterhin `hacs.json`) für [anerdins/nibepi](https://github.com/anerdins/nibepi) (RPi + RS485 an NIBE F-Serie). Kommunikation ausschließlich über HAs MQTT-Integration (`dependencies: ["mqtt"]`), `iot_class: local_push`. Protokolldetails: `docs/NIBEPI_PROTOCOL.md` – vor Änderungen an Topics/Parsing lesen.
 
 ## Architektur
 - `models.py` – reines Python, **keine HA-Imports**. Parsing der `/json`-Payloads → `NibeRegister`. Soll später als eigene PyPI-Lib ausgelagert werden können (Core-Pflicht).
@@ -57,7 +57,7 @@ Lokal unter Windows: HA lässt sich nativ nicht installieren (C-Extensions). Dah
 - `nibepi-protocol-researcher` – recherchiert im NibePi-Quellcode (Topics, Register, Modelle)
 
 ## Releases
-HACS installiert **Releases**, nicht `main`. Änderungen kommen beim Nutzer erst an mit: Version in `manifest.json` + `pyproject.toml` erhöhen, CHANGELOG-Abschnitt, Commit, CI grün, dann `gh release create vX.Y.Z --target <volle SHA> --notes-file …`.
+Marketplace/HACS installiert **Releases**, nicht `main`. Änderungen kommen beim Nutzer erst an mit: Version in `manifest.json` + `pyproject.toml` erhöhen, CHANGELOG-Abschnitt, Commit, CI grün, dann `gh release create vX.Y.Z --target <volle SHA> --notes-file …`.
 
 ## Roadmap
 1. ~~Writable Register: `number`, `select`, `switch`~~ (erledigt, v0.2.0)
@@ -65,4 +65,4 @@ HACS installiert **Releases**, nicht `main`. Änderungen kommen beim Nutzer erst
    - Offen: Register, die NibePi nicht mehr liefert (Modellwechsel), aufräumen → `stale-devices`/Entity-Removal
 3. ~~Diagnostics~~ (erledigt), ~~Entity-Kategorien~~ (erledigt), ~~nicht angeschlossene Fühler ausblenden~~ (erledigt, v0.5.0)
 4. Climate/Water-Heater-Abstraktion für die gängigsten Register (40004, 40013, 47011 …)
-5. Brands-PR, HACS-Default-Repo
+5. Brands-PR, Aufnahme in den Marketplace-Katalog (früher HACS-Default)

@@ -2,7 +2,7 @@
 
 **English** · [Deutsch](README.de.md)
 
-A custom integration (HACS) that brings a [NibePi](https://github.com/anerdins/nibepi) into Home Assistant over **MQTT**. NibePi is a Raspberry Pi connected to the RS485/Modbus port of a NIBE F-series heat pump. You get one device with stable unique IDs, proper device classes, and availability based on NibePi's last will.
+A custom integration for the Home Assistant Marketplace (formerly HACS) that brings a [NibePi](https://github.com/anerdins/nibepi) into Home Assistant over **MQTT**. NibePi is a Raspberry Pi connected to the RS485/Modbus port of a NIBE F-series heat pump. You get one device with stable unique IDs, proper device classes, and availability based on NibePi's last will.
 
 > Status: **early** (v0.5.0). Tested on a NIBE F1145 and checked against all NibePi model files.
 
@@ -30,10 +30,20 @@ A custom integration (HACS) that brings a [NibePi](https://github.com/anerdins/n
 - NibePi's own Home Assistant discovery **turned off**, otherwise you get duplicate sensors.
 - Home Assistant 2025.8 or newer with the [MQTT integration](https://www.home-assistant.io/integrations/mqtt/) set up on the same broker.
 
-## Installation (HACS)
-1. HACS → ⋮ → Custom repositories → `https://github.com/Ulle80/nibepi-homeassistant`, type *Integration*.
-2. Install "NibePi" and restart Home Assistant.
-3. Settings → Devices & services: NibePi is discovered automatically on the default topic. Otherwise use "Add integration" → NibePi.
+## Installation
+NibePi is not in the Marketplace catalog yet, so you add it from its link.
+
+**Home Assistant 2026.11 or newer (Marketplace):**
+1. Go to **Settings** → **Marketplace** and select **Add from link** (upper right).
+2. Under **GitHub link**, enter `https://github.com/Ulle80/nibepi-homeassistant` and select **Add**. If GitHub is not connected yet, the Marketplace asks you to connect it first (GitHub device sign-in, read-only access to public data).
+3. Open "NibePi" in the list, install it and restart Home Assistant.
+
+**Older Home Assistant with HACS:** HACS → ⋮ → **Custom repositories** → `https://github.com/Ulle80/nibepi-homeassistant`, type *Integration*. Then install "NibePi" and restart.
+
+Then go to **Settings** → **Devices & services**. NibePi is discovered automatically on the default topic. Otherwise use **Add integration** → NibePi.
+
+## Updates
+New versions are offered under **Settings** → **Updates**, together with Home Assistant updates. Restart after updating. Only GitHub releases are offered, not every commit.
 
 ## Configuration
 Settings → Devices & services → NibePi → **Configure**:
@@ -47,7 +57,7 @@ Step-by-step checklist (German): [docs/HARDWARE_TEST.md](docs/HARDWARE_TEST.md)
 Settings → Devices & services → NibePi → ⋮ → **Download diagnostics**. The file contains the configuration, availability, the detected model, hidden sensors and all known registers with definition, entity type and current value. It contains no passwords; those are stored in the MQTT integration. Please attach it to issues.
 
 ## Removal
-Settings → Devices & services → NibePi → Delete, then uninstall it in HACS.
+Settings → **Marketplace** → NibePi → ⋮ → **Uninstall**. If the integration is still set up, choose **Delete and uninstall**. This also removes its device and entities. With HACS: delete the integration under Settings → Devices & services, then uninstall it in HACS.
 
 ## Development
 See [CLAUDE.md](CLAUDE.md) and [docs/NIBEPI_PROTOCOL.md](docs/NIBEPI_PROTOCOL.md) (German).

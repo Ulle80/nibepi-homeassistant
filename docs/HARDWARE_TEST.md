@@ -24,10 +24,9 @@ Einstellungen → Geräte & Dienste → **MQTT** → Konfigurieren → „Auf ei
 Kommt nichts: MQTT im NibePi prüfen, Broker-Log ansehen, Basis-Topic vergleichen. Erst weiter, wenn hier Daten sichtbar sind.
 
 ## 3. Integration installieren und einrichten
-Das Repo ist privat, daher ohne HACS:
-1. Auf GitHub → Releases → v0.3.0 → „Source code (zip)“ herunterladen
-2. Den Ordner `custom_components/nibepi` nach `/config/custom_components/nibepi` kopieren (Samba-, SSH- oder File-Editor-Add-on)
-3. Home Assistant **neu starten**
+Über den Marketplace (HA ab 2026.11) bzw. HACS installieren, siehe [README](../README.de.md#installation), danach Home Assistant **neu starten**.
+
+Ohne Marketplace/HACS: auf GitHub → Releases → neueste Version → „Source code (zip)“ herunterladen, den Ordner `custom_components/nibepi` nach `/config/custom_components/nibepi` kopieren (Samba-, SSH- oder File-Editor-App) und neu starten.
 
 - [ ] Einstellungen → Geräte & Dienste: NibePi wird **automatisch gefunden** (bei Standard-Topic) → „Hinzufügen“
   - Sonst: „Integration hinzufügen“ → NibePi → Basis-Topic eintragen
