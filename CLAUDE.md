@@ -10,6 +10,7 @@ HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerd
 - Plattformen legen Entities **dynamisch** an, wenn ein neues Register auftaucht (`async_setup_register_platform`). `NibeRegister.kind` entscheidet: nur lesbar → `sensor`; R/W mit `map` → `select`; R/W, factor 1, 0..1, ohne Einheit → `switch`; sonst R/W → `number`. Jedes Register erzeugt genau eine Entity.
 - Schreiben immer über `NibeRegister.encode_value()` / `key_for_label()` – NibePi akzeptiert nur Zahlen und schneidet ab (siehe Protokoll-Doku).
 - `entry.runtime_data` = Hub (typisiert über `NibePiConfigEntry`).
+- Neustart: NibePi published nicht retained. Der Hub speichert Register-**Definitionen** (keine Werte) im HA-Store `nibepi.<entry_id>` (verzögert bei neuen Registern, sofort beim Unload), stellt sie beim Start wieder her und fragt fehlende Werte gedrosselt per `<base><reg>/get` ab (`REFRESH_REQUEST_DELAY`). `async_remove_entry` löscht den Store.
 
 ## Standards (verbindlich)
 - [HA Developer Docs](https://developers.home-assistant.io/) + [Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/). Fortschritt in `custom_components/nibepi/quality_scale.yaml` pflegen; Ziel: Silver, dann Gold.
@@ -40,7 +41,8 @@ Lokal unter Windows: HA lässt sich nativ nicht installieren (C-Extensions). Dah
 
 ## Roadmap
 1. ~~Writable Register: `number`, `select`, `switch`~~ (erledigt, v0.2.0)
-2. Nach Neustart Register-Liste aus Entry/Store laden und per `/get` aktiv abfragen (NibePi published nicht retained)
+2. ~~Nach Neustart Register aus Store laden und per `/get` abfragen~~ (erledigt, v0.3.0)
+   - Offen: Register, die NibePi nicht mehr liefert (Modellwechsel), aufräumen → `stale-devices`/Entity-Removal
 3. Diagnostics, Entity-Kategorien, disabled-by-default für Exoten-Register
 4. Climate/Water-Heater-Abstraktion für die gängigsten Register (40004, 40013, 47011 …)
 5. Brands-PR, HACS-Default-Repo

@@ -22,6 +22,15 @@ LWT_DISCONNECTED_SUFFIX: Final = "disconnected"
 #   <base><register>/set    (subscribed by NibePi) write a value
 TOPIC_SUFFIX_JSON: Final = "/json"
 TOPIC_SUFFIX_SET: Final = "/set"
+TOPIC_SUFFIX_GET: Final = "/get"
+
+# NibePi does not retain its messages. Known register definitions are stored so
+# entities come back after a restart, and values are actively requested.
+STORAGE_VERSION: Final = 1
+STORAGE_KEY: Final = "nibepi.{entry_id}"
+STORAGE_SAVE_DELAY: Final = 10
+# Pause between /get requests so the RS485 bus is not flooded.
+REFRESH_REQUEST_DELAY: Final = 0.25
 
 SIGNAL_NEW_REGISTER: Final = "nibepi_new_register_{entry_id}"
 SIGNAL_REGISTER_UPDATE: Final = "nibepi_register_update_{entry_id}_{register}"

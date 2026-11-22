@@ -68,6 +68,23 @@ def test_encode_value_survives_truncation(
     assert int(float(payload) * factor) == expected_raw
 
 
+def test_definition_roundtrip() -> None:
+    """Stored definitions recreate the register without its runtime value."""
+    original = NibeRegister.from_payload(OPERATIONAL_MODE_PAYLOAD)
+    restored = NibeRegister.from_definition(original.as_definition())
+    assert restored.kind is RegisterKind.SELECT
+    assert restored.mapping == original.mapping
+    assert restored.limits == original.limits
+    assert restored.value is None
+
+
+@pytest.mark.parametrize("definition", [None, [], {"title": "no register"}])
+def test_invalid_definition(definition: object) -> None:
+    """Broken stored data is rejected."""
+    with pytest.raises(InvalidRegisterPayloadError):
+        NibeRegister.from_definition(definition)  # type: ignore[arg-type]
+
+
 def test_key_for_label() -> None:
     """Labels translate back to the numeric key NibePi expects."""
     reg = NibeRegister.from_payload(OPERATIONAL_MODE_PAYLOAD)

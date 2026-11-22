@@ -36,6 +36,20 @@ SIZE_LIMITS: dict[str, tuple[int, int]] = {
     "u32": (0, 2**32 - 1),
 }
 
+# Static register metadata that survives a restart (runtime values do not).
+DEFINITION_FIELDS: tuple[str, ...] = (
+    "register",
+    "title",
+    "unit",
+    "info",
+    "factor",
+    "size",
+    "writable",
+    "min",
+    "max",
+    "mapping",
+)
+
 
 def _to_float(value: Any) -> float | None:
     if value in (None, ""):
@@ -166,6 +180,23 @@ class NibeRegister:
             value=data.get("data"),
             raw_value=int(raw) if isinstance(raw, (int, float)) else None,
             timestamp=data.get("timestamp"),
+        )
+
+    def as_definition(self) -> dict[str, Any]:
+        """Return the static metadata (no runtime values) for persisting."""
+        return {name: getattr(self, name) for name in DEFINITION_FIELDS}
+
+    @classmethod
+    def from_definition(cls, definition: dict[str, Any]) -> NibeRegister:
+        """Recreate a register from ``as_definition`` output (value unknown)."""
+        if not isinstance(definition, dict) or "register" not in definition:
+            raise InvalidRegisterPayloadError("Invalid stored register definition")
+        return cls(
+            **{
+                name: definition[name]
+                for name in DEFINITION_FIELDS
+                if name in definition
+            }
         )
 
     def update_from(self, other: NibeRegister) -> None:

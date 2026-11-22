@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import CONF_BASE_TOPIC, CONF_LWT_TOPIC, DEFAULT_LWT_TOPIC
-from .hub import NibePiHub
+from .hub import NibePiHub, async_get_store
 
 PLATFORMS: list[Platform] = [
     Platform.NUMBER,
@@ -34,13 +34,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: NibePiConfigEntry) -> bo
     )
     entry.runtime_data = hub
 
-    # Platforms first, so their dispatcher listeners exist before messages arrive.
+    # Platforms first, so their dispatcher listeners exist before the hub
+    # restores stored registers or messages arrive.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await hub.async_start()
-    entry.async_on_unload(hub.async_stop)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: NibePiConfigEntry) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        await entry.runtime_data.async_shutdown()
+    return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: NibePiConfigEntry) -> None:
+    """Delete the stored register definitions when the entry is removed."""
+    await async_get_store(hass, entry.entry_id).async_remove()

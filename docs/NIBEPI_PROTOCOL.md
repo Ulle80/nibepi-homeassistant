@@ -52,5 +52,5 @@ Publiziert `homeassistant/sensor/<reg>/config` – nur Sensoren, **ohne** `uniqu
 
 ## Konsequenzen fürs Design
 - Register sind nicht vorab bekannt → Entities werden **dynamisch** beim ersten `/json` angelegt.
-- Kein retain → nach HA-Neustart sind Entities erst beim nächsten Wertwechsel da. Idee: nach Setup `<base><reg>/get` für bekannte Register senden (Registerliste im Entry speichern).
+- Kein retain → nach HA-Neustart wären Entities erst beim nächsten Publish da. Umgesetzt: Register-Definitionen werden im HA-Store gespeichert, nach dem Start sofort als Entities angelegt (unavailable bis Wert da) und per `<base><reg>/get` abgefragt, alle 0,25 s eins (jede Abfrage = ein RS485-Read). Für Register, die NibePi ohnehin pollt, wartet NibePi auf den nächsten Broadcast statt aktiv zu lesen.
 - Geräte-ID: NibePi publiziert keine Seriennummer per MQTT → Unique-ID = Basis-Topic.
