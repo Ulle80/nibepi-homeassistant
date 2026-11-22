@@ -22,7 +22,7 @@ Schreibbare Register erscheinen als Konfigurations-Entities am Gerät. Nach dem 
 - Home Assistant mit eingerichteter [MQTT-Integration](https://www.home-assistant.io/integrations/mqtt/) am selben Broker
 
 ## Installation (HACS)
-1. HACS → Integrationen → ⋮ → Benutzerdefinierte Repositories → dieses Repo, Kategorie *Integration*
+1. HACS → Integrationen → ⋮ → Benutzerdefinierte Repositories → `https://github.com/Ulle80/nibepi-homeassistant`, Kategorie *Integration* (geht erst, wenn das Repo öffentlich ist)
 2. „NibePi“ installieren, HA neu starten
 3. Einstellungen → Geräte & Dienste: NibePi wird bei Standard-Topic automatisch gefunden, sonst „Integration hinzufügen“ → NibePi
 
