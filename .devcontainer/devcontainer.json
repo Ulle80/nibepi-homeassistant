@@ -1,0 +1,21 @@
+{
+  "name": "NibePi HA integration",
+  "image": "mcr.microsoft.com/devcontainers/python:3.13",
+  "postCreateCommand": "pip install -r requirements_dev.txt && pre-commit install",
+  "forwardPorts": [8123],
+  "portsAttributes": { "8123": { "label": "Home Assistant" } },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "python.testing.pytestEnabled": true,
+        "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+      }
+    }
+  }
+}

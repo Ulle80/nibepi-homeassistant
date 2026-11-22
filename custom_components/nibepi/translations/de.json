@@ -1,0 +1,28 @@
+{
+  "config": {
+    "flow_title": "NibePi ({base_topic})",
+    "step": {
+      "user": {
+        "description": "Verbinde einen NibePi, der die Register der Wärmepumpe an deinen MQTT-Broker sendet. Aktiviere zuerst MQTT in der Node-RED-Oberfläche des NibePi.",
+        "data": {
+          "base_topic": "Basis-Topic",
+          "lwt_topic": "Last-Will-Topic"
+        },
+        "data_description": {
+          "base_topic": "Im NibePi eingestelltes MQTT-Topic-Präfix (Standard: nibe/modbus/).",
+          "lwt_topic": "Topic, auf dem der NibePi seinen Last Will sendet (Standard: nibe). Leer lassen, um die Verfügbarkeitserkennung abzuschalten."
+        }
+      },
+      "confirm": {
+        "description": "Es wurde ein NibePi auf {base_topic} gefunden. Möchtest du ihn hinzufügen?"
+      }
+    },
+    "error": {
+      "invalid_topic": "Das Basis-Topic darf nicht leer sein und keine MQTT-Wildcards (+, #) enthalten."
+    },
+    "abort": {
+      "already_configured": "Dieser NibePi ist bereits eingerichtet.",
+      "invalid_discovery_info": "Ungültige Discovery-Informationen empfangen."
+    }
+  }
+}

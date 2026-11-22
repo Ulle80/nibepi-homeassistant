@@ -1,0 +1,9 @@
+# Minimal dev instance. Start with:
+#   PYTHONPATH=. hass -c config --debug
+# then add MQTT (point it at your broker) and NibePi via the UI.
+default_config:
+
+logger:
+  default: info
+  logs:
+    custom_components.nibepi: debug

@@ -1,0 +1,4 @@
+-r requirements_test.txt
+pre-commit
+ruff
+mypy

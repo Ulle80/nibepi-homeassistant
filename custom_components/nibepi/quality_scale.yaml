@@ -1,0 +1,78 @@
+# Integration Quality Scale tracking
+# https://developers.home-assistant.io/docs/core/integration-quality-scale/
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: No custom actions yet.
+  appropriate-polling:
+    status: exempt
+    comment: Push-based via MQTT.
+  brands: todo
+  common-modules: done
+  config-flow-test-coverage: done
+  config-flow: done
+  dependency-transparency: done
+  docs-actions:
+    status: exempt
+    comment: No custom actions yet.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: todo
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure:
+    status: todo
+    comment: Optionally wait for a first /json message before creating the entry.
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: todo
+  config-entry-unloading: done
+  docs-configuration-parameters: todo
+  docs-installation-parameters: todo
+  entity-unavailable: done
+  integration-owner: todo
+  log-when-unavailable: todo
+  parallel-updates: todo
+  reauthentication-flow:
+    status: exempt
+    comment: Authentication is handled by the MQTT integration.
+  test-coverage: todo
+
+  # Gold
+  devices: done
+  diagnostics: todo
+  discovery: done
+  discovery-update-info:
+    status: exempt
+    comment: Base topic is the identity; nothing to update.
+  docs-data-update: todo
+  docs-examples: todo
+  docs-known-limitations: todo
+  docs-supported-devices: todo
+  docs-supported-functions: todo
+  docs-troubleshooting: todo
+  docs-use-cases: todo
+  dynamic-devices: done
+  entity-category: todo
+  entity-device-class: done
+  entity-disabled-by-default: todo
+  entity-translations:
+    status: exempt
+    comment: Entity names come from the pump's register model and are dynamic.
+  exception-translations: todo
+  icon-translations: todo
+  reconfiguration-flow: todo
+  repair-issues: todo
+  stale-devices: todo
+
+  # Platinum
+  async-dependency: done
+  inject-websession:
+    status: exempt
+    comment: No HTTP.
+  strict-typing: todo

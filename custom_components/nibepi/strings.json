@@ -1,0 +1,28 @@
+{
+  "config": {
+    "flow_title": "NibePi ({base_topic})",
+    "step": {
+      "user": {
+        "description": "Connect a NibePi that publishes heat pump registers to your MQTT broker. Enable MQTT in the NibePi Node-RED UI first.",
+        "data": {
+          "base_topic": "Base topic",
+          "lwt_topic": "Last-will topic"
+        },
+        "data_description": {
+          "base_topic": "MQTT topic prefix configured in NibePi (default: nibe/modbus/).",
+          "lwt_topic": "Topic NibePi uses for its last will (default: nibe). Leave empty to disable availability tracking."
+        }
+      },
+      "confirm": {
+        "description": "A NibePi was found publishing on {base_topic}. Do you want to add it?"
+      }
+    },
+    "error": {
+      "invalid_topic": "The base topic must not be empty or contain MQTT wildcards (+, #)."
+    },
+    "abort": {
+      "already_configured": "This NibePi is already configured.",
+      "invalid_discovery_info": "Received invalid discovery information."
+    }
+  }
+}

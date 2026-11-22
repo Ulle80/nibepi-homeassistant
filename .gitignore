@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+# Dev Home Assistant instance (keep only configuration.yaml)
+config/*
+!config/configuration.yaml
+.claude/settings.local.json
