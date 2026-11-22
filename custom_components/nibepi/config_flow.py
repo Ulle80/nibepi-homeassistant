@@ -4,18 +4,31 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlowWithReload,
+)
+from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 import voluptuous as vol
 
 from .const import (
     CONF_BASE_TOPIC,
+    CONF_LANGUAGE,
     CONF_LWT_TOPIC,
     DEFAULT_BASE_TOPIC,
     DEFAULT_LWT_TOPIC,
     DOMAIN,
     TOPIC_SUFFIX_JSON,
 )
+from .labels import LANGUAGE_AUTO, LANGUAGES
 
 
 def _normalize_base_topic(topic: str) -> str:
@@ -27,12 +40,51 @@ def _has_wildcard(topic: str) -> bool:
     return "#" in topic or "+" in topic
 
 
+LANGUAGE_SCHEMA_OPTIONS = [LANGUAGE_AUTO, *LANGUAGES]
+
+
+class NibePiOptionsFlow(OptionsFlowWithReload):
+    """Options: language of the value labels.
+
+    Reloads only when the options change. An update listener would also fire on
+    every MQTT discovery message, because HA records discovery keys on the entry.
+    """
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Choose the label language."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+        current = self.config_entry.options.get(CONF_LANGUAGE, LANGUAGE_AUTO)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_LANGUAGE, default=current): SelectSelector(
+                        SelectSelectorConfig(
+                            options=LANGUAGE_SCHEMA_OPTIONS,
+                            translation_key=CONF_LANGUAGE,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+
 class NibePiConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for NibePi."""
 
     VERSION = 1
 
     _discovered_base_topic: str | None = None
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> NibePiOptionsFlow:
+        """Return the options flow."""
+        return NibePiOptionsFlow()
 
     async def async_step_mqtt(
         self, discovery_info: MqttServiceInfo

@@ -31,13 +31,14 @@ class NibePiSelect(NibePiWritableEntity, SelectEntity):
     def __init__(self, hub: NibePiHub, register: NibeRegister) -> None:
         """Initialize the select."""
         super().__init__(hub, register)
-        self._attr_options = list(dict.fromkeys(register.mapping.values()))
+        self._attr_options = self._label_options()
 
     @property
     def current_option(self) -> str | None:
-        """Return the active label."""
-        return self._register.current_label
+        """Return the active label in the configured language."""
+        return self._current_label()
 
     async def async_select_option(self, option: str) -> None:
         """Write the numeric key for the chosen label (NibePi rejects labels)."""
-        await self._async_write(self._register.key_for_label(option))
+        key = self._register.key_for_label(self._original_label(option))
+        await self._async_write(key)

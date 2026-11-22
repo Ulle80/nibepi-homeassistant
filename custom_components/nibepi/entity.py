@@ -20,6 +20,7 @@ from .const import (
     SIGNAL_REGISTER_UPDATE,
 )
 from .hub import NibePiHub
+from .labels import translate
 from .models import NibeRegister, RegisterKind
 
 if TYPE_CHECKING:
@@ -99,6 +100,28 @@ class NibePiEntity(Entity):
     @callback
     def _handle_update(self) -> None:
         self.async_write_ha_state()
+
+    # --- value labels in the configured language ---
+    def _label_options(self) -> list[str]:
+        """Return the translated value labels, without duplicates."""
+        return list(
+            dict.fromkeys(
+                translate(label, self._hub.language)
+                for label in self._register.mapping.values()
+            )
+        )
+
+    def _current_label(self) -> str | None:
+        """Return the translated label of the current value."""
+        label = self._register.current_label
+        return None if label is None else translate(label, self._hub.language)
+
+    def _original_label(self, shown: str) -> str:
+        """Map a translated label back to the one NibePi uses."""
+        for label in self._register.mapping.values():
+            if translate(label, self._hub.language) == shown:
+                return label
+        raise ValueError(f"Unknown option {shown!r}")
 
 
 class NibePiWritableEntity(NibePiEntity):

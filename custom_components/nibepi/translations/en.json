@@ -25,6 +25,31 @@
       "invalid_discovery_info": "Received invalid discovery information."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "NibePi options",
+        "data": {
+          "language": "Language of value labels"
+        },
+        "data_description": {
+          "language": "Language for states such as operating mode, alarms or pump status. Automatic uses the Home Assistant language, or Norwegian if it is not supported."
+        }
+      }
+    }
+  },
+  "selector": {
+    "language": {
+      "options": {
+        "auto": "Automatic",
+        "en": "English",
+        "de": "Deutsch",
+        "sv": "Svenska",
+        "da": "Dansk",
+        "nb": "Norsk (bokmål)"
+      }
+    }
+  },
   "exceptions": {
     "value_not_writable": {
       "message": "{value} cannot be written exactly to {entity}: NibePi would store a different value. Choose a value one step lower or higher."

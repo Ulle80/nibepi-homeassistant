@@ -58,6 +58,24 @@ DEFINITION_FIELDS: tuple[str, ...] = (
 
 # "0=Auto 1=Manual 2=Add. heat only" or "10=off,15=starting,20=on".
 _INFO_PAIR = re.compile(r"(-?\d+)\s*=\s*([^,=]+?)(?=\s*,|\s+-?\d+\s*=|\s*$)")
+# Bit fields ("Bit0=K4", "b0:EM1-GP4", "Binary encoded") are not value maps.
+_BITFIELD = re.compile(r"\bbit\s*\d|\bb\d+\s*:|binary encoded", re.IGNORECASE)
+
+# A writable 0/1 register with these labels is an on/off setting -> switch.
+_ON_LABELS = frozenset({"on", "yes", "active", "activated", "affecting"})
+_OFF_LABELS = frozenset(
+    {"off", "no", "inactive", "not activated", "deactivated", "not affecting"}
+)
+
+
+def _clean_label(label: str) -> str:
+    """Drop sentence punctuation the descriptions leave on labels."""
+    label = label.strip().rstrip(".;,").strip()
+    if label.count(")") > label.count("("):
+        label = label.rstrip(")").strip()
+    if label.count("(") > label.count(")"):
+        label = label.lstrip("(").strip()
+    return label
 
 
 def _mapping_from_info(
@@ -70,9 +88,13 @@ def _mapping_from_info(
     an example (e.g. "12=12 Hours 24=24 Hours" for a 0..48 setting) and a
     select would make the other values unreachable.
     """
-    mapping: dict[str, str] = {}
-    for key, label in _INFO_PAIR.findall(info):
-        mapping[key] = label.strip()
+    if _BITFIELD.search(info):
+        return {}
+    mapping = {
+        key: cleaned
+        for key, label in _INFO_PAIR.findall(info)
+        if (cleaned := _clean_label(label))
+    }
     if len(mapping) < 2:
         return {}
     if (
@@ -125,6 +147,29 @@ class NibeRegister:
         return bool(self.mapping)
 
     @property
+    def is_on_off_map(self) -> bool:
+        """Return True for a 0/1 map like {0: Off, 1: On} or {0: No, 1: Yes}."""
+        return (
+            set(self.mapping) == {"0", "1"}
+            and self.mapping["0"].casefold() in _OFF_LABELS
+            and self.mapping["1"].casefold() in _ON_LABELS
+        )
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return the on/off state of a 0/1 register (number or mapped label)."""
+        if self.value is None:
+            return None
+        text = str(self.value)
+        for key, label in self.mapping.items():
+            if label == text:
+                return key == "1"
+        try:
+            return float(self.value) == 1
+        except (TypeError, ValueError):
+            return None
+
+    @property
     def current_label(self) -> str | None:
         """Return the label for the current value.
 
@@ -164,6 +209,8 @@ class NibeRegister:
         """Return the entity type that fits this register."""
         if not self.writable:
             return RegisterKind.SENSOR
+        if self.is_on_off_map:
+            return RegisterKind.SWITCH
         if self.is_enum:
             return RegisterKind.SELECT
         if self.factor == 1 and self.min == 0 and self.max == 1 and not self.unit:

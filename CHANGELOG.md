@@ -2,9 +2,25 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.5.0] – 2026-11-22
+
+### Hinzugefügt
+- **Sprache der Wertebezeichnungen** wählbar (Integration → Konfigurieren): Automatisch, Deutsch, Englisch, Schwedisch, Dänisch, Norwegisch. „Automatisch“ nutzt die Home-Assistant-Sprache, sonst Norwegisch. Übersetzt werden alle Zustände aus allen NibePi-Modelldateien (u.a. schwedische Alarme wie „Inga larm“, „Från“, Lüfterstufen), technische Kürzel bleiben unverändert.
+- Einrichtungs- und Optionsdialoge zusätzlich auf Schwedisch, Dänisch und Norwegisch
+
+### Geändert
+- Gegen alle 22 NibePi-Modelldateien geprüft (F370 … F1355, VVM, SMO, RMU40, S1255)
+- Bitfelder (z.B. Relais-Status „Bit0=K4…“) werden nicht mehr fälschlich als Auswahl angezeigt
+- Satzzeichen an Bezeichnungen aus Beschreibungen entfernt („fixed price.“ → „fixed price“)
+- Schreibbare 0/1-Register mit Off/On, No/Yes, not activated/activated usw. bleiben Schalter statt Auswahl
+- Mindestversion Home Assistant 2025.8
+
+### Korrigiert
+- Test-Pumpe ist eine **F1145** (nicht F1255, wie in 0.4.0 angegeben)
+
 ## [0.4.0] – 2026-11-22
 
-Erkenntnisse aus dem ersten Test an einer echten F1255 (102 Register, läuft stabil).
+Erkenntnisse aus dem ersten Test an einer echten F1145 (102 Register, läuft stabil).
 
 > Hinweis zum Update: Bereits angelegte schreibbare Entities bleiben aktiv – Home Assistant übernimmt „standardmäßig deaktiviert“ nur für neue Entities. Nicht benötigte Steuer-Entities unter Gerät → Entities selbst deaktivieren.
 
@@ -43,5 +59,6 @@ Erstes Release. **Noch nicht gegen echte NibePi-Hardware getestet.**
 - Automatische Erkennung nur für das Standard-Basis-Topic; sonst manuell einrichten
 - NibePi-eigene HA-Discovery bitte abschalten, sonst doppelte Sensoren
 
+[0.5.0]: https://github.com/Ulle80/nibepi-homeassistant/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Ulle80/nibepi-homeassistant/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Ulle80/nibepi-homeassistant/releases/tag/v0.3.0

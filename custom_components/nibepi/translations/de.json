@@ -25,6 +25,31 @@
       "invalid_discovery_info": "Ungültige Discovery-Informationen empfangen."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "NibePi-Optionen",
+        "data": {
+          "language": "Sprache der Wertebezeichnungen"
+        },
+        "data_description": {
+          "language": "Sprache für Zustände wie Betriebsart, Alarme oder Pumpenstatus. Automatisch nutzt die Sprache von Home Assistant, sonst Norwegisch."
+        }
+      }
+    }
+  },
+  "selector": {
+    "language": {
+      "options": {
+        "auto": "Automatisch",
+        "en": "English",
+        "de": "Deutsch",
+        "sv": "Svenska",
+        "da": "Dansk",
+        "nb": "Norsk (bokmål)"
+      }
+    }
+  },
   "exceptions": {
     "value_not_writable": {
       "message": "{value} kann nicht exakt in {entity} geschrieben werden: NibePi würde einen anderen Wert speichern. Wähle einen Wert eine Stufe niedriger oder höher."

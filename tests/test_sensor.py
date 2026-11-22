@@ -22,7 +22,7 @@ async def test_real_world_registers(
     mqtt_mock: MqttMockHAClient,
     entity_registry: er.EntityRegistry,
 ) -> None:
-    """Payloads modelled on a real F1255: counters, placeholders, info maps."""
+    """Payloads modelled on a real F1145: counters, placeholders, info maps."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id="nibe/modbus/",
@@ -93,7 +93,7 @@ async def test_sensors_created_from_mqtt(
 
     price = hass.states.get("sensor.nibepi_price_level")
     assert price is not None
-    assert price.state == "CHEAP"
+    assert price.state == "Cheap"  # translated to the HA language (en in tests)
 
     async_fire_mqtt_message(hass, "nibe", "nibe_1234abcd disconnected")
     await hass.async_block_till_done()

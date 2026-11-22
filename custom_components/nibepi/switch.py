@@ -32,10 +32,7 @@ class NibePiSwitch(NibePiWritableEntity, SwitchEntity):
     @property
     def is_on(self) -> bool | None:
         """Return True if the register is 1."""
-        try:
-            return float(self._register.value) == 1
-        except (TypeError, ValueError):
-            return None
+        return self._register.is_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Write 1 (NibePi only accepts numbers, not 'on'/'true')."""

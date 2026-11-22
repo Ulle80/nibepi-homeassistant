@@ -51,6 +51,14 @@ Kein Availability-Topic. Last Will ist **hart kodiert** auf Topic `nibe` (nicht 
 ### Eingebaute HA-Discovery (optional, `config.mqtt.discovery`)
 Publiziert `homeassistant/sensor/<reg>/config` – nur Sensoren, **ohne** `unique_id`, `device`, `availability`. Grund für diese Integration. Wer diese Integration nutzt, sollte die NibePi-Discovery **ausschalten**, sonst gibt es Dubletten.
 
+## Modelldateien (`models/*.json`, ausgewertet Nov. 2026)
+- 22 Dateien; identisch sind F1145 = F1245, F1155 = F1255, F370 = F470, VVM225 = VVM320 = VVM325, VVM310 = VVM500. NibePi unterscheidet diese Modelle also nicht.
+- SMO20/SMO40 sind **cp1252** statt UTF-8 kodiert; in F730/F750 stehen teils kaputte Umlaute (`Fr�n`). Übersetzungen deshalb über normalisierte Schlüssel (`labels.normalize`).
+- Explizite `map`-Labels sind fast nur in F730/F750/RMU40 und **schwedisch** (Alarme, „Från“, „Hastighet 1–4“), bei F1x45/F1x55 nur Strompreisstufe (CHEAP …). Alle anderen Wertetabellen stehen nur im `info`-Text (Englisch) → `_mapping_from_info`.
+- Bitfelder im `info` („Bit0=K4“, „b0:EM1-GP4“, „Binary encoded“) sind keine Wertetabellen.
+- Register 100xx (z.B. 10001 A-larm, 10020 Temporary Lux, 10060 RMU Temp) kommen aus den **RMU40**-Dateien, nicht aus dem Pumpenmodell.
+- Pumpe des Erst-Testers: Live-Register passen zu F1145/F1245 (nur die 7 RMU-Register fehlen), nicht zu F1155/F1255 (13 fehlen).
+
 ## Konsequenzen fürs Design
 - Register sind nicht vorab bekannt → Entities werden **dynamisch** beim ersten `/json` angelegt.
 - Kein retain → nach HA-Neustart wären Entities erst beim nächsten Publish da. Umgesetzt: Register-Definitionen werden im HA-Store gespeichert, nach dem Start sofort als Entities angelegt (unavailable bis Wert da) und per `<base><reg>/get` abgefragt, alle 0,25 s eins (jede Abfrage = ein RS485-Read). Für Register, die NibePi ohnehin pollt, wartet NibePi auf den nächsten Broadcast statt aktiv zu lesen.

@@ -14,7 +14,9 @@ HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerd
 - Fehlender Fühler = kleinster Wert des signed-Typs (z.B. −32768) → `value = None`.
 - Zähler (`is_counter`): read-only, s32/u32, min 0/None → `total_increasing`.
 - Schreibbare Entities standardmäßig deaktiviert außer `COMFORT_REGISTERS` (const.py).
-- Echte Testdaten: F1255 mit 102 Registern (siehe Tests `test_real_world_registers`, `test_mapping_from_info`).
+- Sprache der Wertebezeichnungen: `labels.py` (HA-frei, Tabelle en/de/sv/da/nb, Fallback nb). Entities zeigen `translate(label)`, Select schreibt über `_original_label` → `key_for_label`. Optionen per `OptionsFlowWithReload` – **kein** Update-Listener: der würde bei jeder MQTT-Discovery-Nachricht feuern (HA speichert discovery_keys am Entry) und die Integration endlos neu laden.
+- Neue Labels aus Modelldateien → `_ROWS`/`_ALIASES` in labels.py ergänzen; `tests/test_labels.py` listet alle schwedischen Labels.
+- Echte Testdaten: F1145 mit 102 Registern (siehe Tests `test_real_world_registers`, `test_mapping_from_info`).
 - Last Will `nibe` ist bei allen NibePis gleich → nach einem LWT wird das eigene Gerät per `/get` angepingt.
 - Unload: erst `hub.async_stop()` (MQTT ab), dann Plattformen, dann `async_save()`. Setup-Fehler nach dem Forwarding rollt die Plattformen zurück.
 

@@ -65,7 +65,7 @@ class NibePiSensor(NibePiEntity, SensorEntity):
         super().__init__(hub, register)
         if register.is_enum:
             self._attr_device_class = SensorDeviceClass.ENUM
-            self._attr_options = list(dict.fromkeys(register.mapping.values()))
+            self._attr_options = self._label_options()
             return
 
         unit, device_class = UNIT_MAP.get(register.unit, (register.unit or None, None))
@@ -81,7 +81,7 @@ class NibePiSensor(NibePiEntity, SensorEntity):
     def native_value(self) -> str | float | None:
         """Return the current value."""
         if self._register.is_enum:
-            return self._register.current_label
+            return self._current_label()
         try:
             return float(self._register.value)
         except (TypeError, ValueError):

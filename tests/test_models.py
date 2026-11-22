@@ -103,7 +103,7 @@ def _payload(**fields: object) -> str:
 @pytest.mark.parametrize(
     ("info", "mode", "low", "high", "data", "mapping", "label"),
     [
-        (  # F1255 47137, writable, range fully described -> select
+        (  # F1145 47137, writable, range fully described -> select
             "The operational mode of the heat pump 0=Auto 1=Manual 2=Add. heat only",
             "R/W", "0", "2", 1,
             {"0": "Auto", "1": "Manual", "2": "Add. heat only"}, "Manual",
@@ -183,6 +183,56 @@ def test_raw_value_is_not_truncated() -> None:
     """raw_value is passed through as published."""
     reg = NibeRegister.from_payload(_payload(factor=10, data=24.5, raw_data=24.5))
     assert reg.raw_value == 24.5
+
+
+@pytest.mark.parametrize(
+    "info",
+    [
+        # F1145 43514: relay bit field
+        "Indicates active relays on the PCA Base card. Please refer to the wiring "
+        "diagram for relay description. Binary encoded. 1=on, 0=off. "
+        "Bit0=K4,Bit1=K3,Bit2=K2,Bit3=K1",
+        # F750 40370
+        "0=Off, 1=On. b0:EM1-GP4, b1:Cool need, b2:QN32, b3:QN11 close",
+    ],
+)
+def test_bitfields_are_not_value_maps(info: str) -> None:
+    """Bit field descriptions do not become selects/enums."""
+    assert NibeRegister.from_payload(_payload(info=info)).mapping == {}
+
+
+def test_label_punctuation_is_cleaned() -> None:
+    """Sentence punctuation and unbalanced brackets are stripped from labels."""
+    reg = NibeRegister.from_payload(
+        _payload(
+            info="Ground water pump control signal (0 = 0V-10V; 1= 10V-0V)",
+            mode="R",
+        )
+    )
+    assert reg.mapping == {"0": "0V-10V", "1": "10V-0V"}
+    reg = NibeRegister.from_payload(
+        _payload(info="0 = fixed price. 1 = tariff. 2= spot price.")
+    )
+    assert reg.mapping == {"0": "fixed price", "1": "tariff", "2": "spot price"}
+
+
+@pytest.mark.parametrize(
+    ("info", "kind"),
+    [
+        ("Activates the climate system 2 accessory 0=Off 1=On", RegisterKind.SWITCH),
+        ("0=not activated, 1=activated", RegisterKind.SWITCH),
+        ("0=not affecting, 1=affecting", RegisterKind.SWITCH),
+        ("Binary or linear stepping method. 0=Linear 1=Binary", RegisterKind.SELECT),
+    ],
+)
+def test_on_off_maps_are_switches(info: str, kind: RegisterKind) -> None:
+    """A writable 0/1 register with on/off-like labels stays a switch."""
+    reg = NibeRegister.from_payload(
+        _payload(info=info, mode="R/W", min="0", max="1", data=1)
+    )
+    assert reg.kind is kind
+    if kind is RegisterKind.SWITCH:
+        assert reg.is_on is True
 
 
 def test_definition_roundtrip() -> None:

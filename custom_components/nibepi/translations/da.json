@@ -1,0 +1,58 @@
+{
+  "config": {
+    "flow_title": "NibePi ({base_topic})",
+    "step": {
+      "user": {
+        "description": "Forbind en NibePi, der sender varmepumpens registre til din MQTT-broker. Aktivér først MQTT i NibePi's Node-RED-brugerflade.",
+        "data": {
+          "base_topic": "Basis-topic",
+          "lwt_topic": "Last will-topic"
+        },
+        "data_description": {
+          "base_topic": "MQTT-topicpræfiks indstillet i NibePi (standard: nibe/modbus/).",
+          "lwt_topic": "Topic, som NibePi bruger til sin last will (standard: nibe). Lad feltet være tomt for at slå tilgængelighedsovervågning fra."
+        }
+      },
+      "confirm": {
+        "description": "Der blev fundet en NibePi på {base_topic}. Vil du tilføje den?"
+      }
+    },
+    "error": {
+      "invalid_topic": "Topics må ikke indeholde MQTT-jokertegn (+, #), og basis-topic må ikke være tom."
+    },
+    "abort": {
+      "already_configured": "Denne NibePi er allerede konfigureret.",
+      "invalid_discovery_info": "Ugyldige opdagelsesoplysninger modtaget."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "NibePi-indstillinger",
+        "data": {
+          "language": "Sprog for værdibetegnelser"
+        },
+        "data_description": {
+          "language": "Sprog for tilstande som driftstilstand, alarmer eller pumpestatus. Automatisk bruger Home Assistants sprog, ellers norsk."
+        }
+      }
+    }
+  },
+  "selector": {
+    "language": {
+      "options": {
+        "auto": "Automatisk",
+        "en": "English",
+        "de": "Deutsch",
+        "sv": "Svenska",
+        "da": "Dansk",
+        "nb": "Norsk (bokmål)"
+      }
+    }
+  },
+  "exceptions": {
+    "value_not_writable": {
+      "message": "{value} kan ikke skrives præcist til {entity}: NibePi ville gemme en anden værdi. Vælg en værdi et trin lavere eller højere."
+    }
+  }
+}

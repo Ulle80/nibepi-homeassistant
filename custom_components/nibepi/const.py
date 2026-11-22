@@ -8,6 +8,7 @@ DOMAIN: Final = "nibepi"
 
 CONF_BASE_TOPIC: Final = "base_topic"
 CONF_LWT_TOPIC: Final = "lwt_topic"
+CONF_LANGUAGE: Final = "language"
 
 # NibePi defaults (see default.json in anerdins/nibepi).
 DEFAULT_BASE_TOPIC: Final = "nibe/modbus/"

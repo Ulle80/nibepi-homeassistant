@@ -28,6 +28,7 @@ from .const import (
     TOPIC_SUFFIX_JSON,
     TOPIC_SUFFIX_SET,
 )
+from .labels import DEFAULT_LANGUAGE
 from .models import InvalidRegisterPayloadError, NibeRegister
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,13 +44,19 @@ class NibePiHub:
     """Keeps the known registers of one NibePi and talks MQTT."""
 
     def __init__(
-        self, hass: HomeAssistant, entry_id: str, base_topic: str, lwt_topic: str
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        base_topic: str,
+        lwt_topic: str,
+        language: str = DEFAULT_LANGUAGE,
     ) -> None:
         """Initialize the hub."""
         self.hass = hass
         self.entry_id = entry_id
         self.base_topic = base_topic
         self.lwt_topic = lwt_topic
+        self.language = language
         self.registers: dict[str, NibeRegister] = {}
         self.available = True
         self._unsubscribers: list[Callable[[], None]] = []

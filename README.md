@@ -2,7 +2,9 @@
 
 Custom Integration (HACS), die einen [NibePi](https://github.com/anerdins/nibepi) – Raspberry Pi am RS485/Modbus einer NIBE F-Serie-Wärmepumpe – über **MQTT** sauber in Home Assistant einbindet: ein Gerät, stabile Unique-IDs, korrekte Device-Classes, Verfügbarkeit über den NibePi-Last-Will.
 
-> Status: **früh** (v0.4.0), getestet an einer NIBE F1255.
+> Status: **früh** (v0.5.0), getestet an einer NIBE F1145, geprüft gegen alle NibePi-Modelldateien.
+
+**Sprache:** Zustände wie Betriebsart, Alarme oder Pumpenstatus erscheinen auf Deutsch, Englisch, Schwedisch, Dänisch oder Norwegisch – einstellbar unter Integration → **Konfigurieren** (Standard: Sprache von Home Assistant, sonst Norwegisch). Entity-Namen bleiben englisch, so wie NibePi sie liefert.
 
 Nach einem Neustart von Home Assistant sind alle bekannten Entities sofort wieder da und werden aktiv beim NibePi abgefragt; sie zeigen „nicht verfügbar“, bis der erste Wert eintrifft.
 
