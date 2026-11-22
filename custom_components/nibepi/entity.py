@@ -13,6 +13,7 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
+    COMFORT_REGISTERS,
     DOMAIN,
     SIGNAL_AVAILABILITY,
     SIGNAL_NEW_REGISTER,
@@ -104,6 +105,13 @@ class NibePiWritableEntity(NibePiEntity):
     """Entity for an R/W register (number, select, switch)."""
 
     _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, hub: NibePiHub, register: NibeRegister) -> None:
+        """Initialize; only comfort settings are enabled out of the box."""
+        super().__init__(hub, register)
+        self._attr_entity_registry_enabled_default = (
+            register.register in COMFORT_REGISTERS
+        )
 
     async def _async_write(self, payload: str) -> None:
         await self._hub.async_write(self._register.register, payload)

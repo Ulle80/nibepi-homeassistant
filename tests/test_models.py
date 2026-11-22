@@ -95,6 +95,96 @@ def test_writable_requires_exact_mode(mode: str, writable: bool) -> None:
     assert NibeRegister.from_payload(json.dumps(payload)).writable is writable
 
 
+def _payload(**fields: object) -> str:
+    base = {"register": "1", "factor": 1, "size": "u8", "mode": "R", "titel": "x"}
+    return json.dumps(base | fields)
+
+
+@pytest.mark.parametrize(
+    ("info", "mode", "low", "high", "data", "mapping", "label"),
+    [
+        (  # F1255 47137, writable, range fully described -> select
+            "The operational mode of the heat pump 0=Auto 1=Manual 2=Add. heat only",
+            "R/W", "0", "2", 1,
+            {"0": "Auto", "1": "Manual", "2": "Add. heat only"}, "Manual",
+        ),
+        (  # 43427, comma separated with spaces around "="
+            "20 = Stopped, 40 = Starting, 60 = Running, 100 = Stopping",
+            "R", "0", "0", 60,
+            {"20": "Stopped", "40": "Starting", "60": "Running", "100": "Stopping"},
+            "Running",
+        ),
+        (  # 43431, label containing digits and a dash
+            "10=off,15=starting,20=on,40=10-day mode,80=calibration",
+            "R", "0", "0", 40,
+            {"10": "off", "15": "starting", "20": "on", "40": "10-day mode",
+             "80": "calibration"},
+            "10-day mode",
+        ),
+        (  # 47377, only examples for a 0..48 setting -> stays a number
+            " 12=12 Hours 24=24 Hours", "R/W", "0", "48", 34, {}, None,
+        ),
+        ("Current outdoor temperature", "R", "-500", "500", 3, {}, None),
+    ],
+)  # fmt: skip
+def test_mapping_from_info(
+    info: str,
+    mode: str,
+    low: str,
+    high: str,
+    data: int,
+    mapping: dict[str, str],
+    label: str | None,
+) -> None:
+    """Value maps described only in 'info' are used when they are complete."""
+    reg = NibeRegister.from_payload(
+        _payload(info=info, mode=mode, min=low, max=high, data=data)
+    )
+    assert reg.mapping == mapping
+    assert reg.current_label == label
+
+
+def test_disconnected_sensor_has_no_value() -> None:
+    """NibePi's 0x8000 placeholder (-3276.8 at factor 10) means no sensor."""
+    reg = NibeRegister.from_payload(
+        _payload(register="40007", factor=10, size="s16", data=-3276.8)
+    )
+    assert reg.value is None
+    # A real -3276.7 is kept; unsigned registers are never placeholders.
+    assert NibeRegister.from_payload(
+        _payload(factor=10, size="s16", data=-3276.7)
+    ).value == pytest.approx(-3276.7)
+    assert NibeRegister.from_payload(_payload(size="u8", data=0)).value == 0
+
+
+@pytest.mark.parametrize(
+    ("fields", "counter"),
+    [
+        ({"size": "s32", "min": "0", "max": "9999999", "unit": ""}, True),  # starts
+        ({"size": "s32", "min": "0", "max": "1000000", "unit": "h"}, True),  # hours
+        ({"size": "u32", "unit": "kWh", "factor": 10}, True),  # heat meter
+        ({"size": "s32", "min": "-30000", "max": "30000"}, False),  # degree min.
+        ({"size": "s16", "unit": "h"}, False),
+        ({"size": "s32", "min": "0", "max": "100", "mode": "R/W"}, False),
+    ],
+)
+def test_is_counter(fields: dict[str, object], counter: bool) -> None:
+    """Read-only, non-negative 32-bit registers are ever-increasing counters."""
+    assert NibeRegister.from_payload(_payload(**fields)).is_counter is counter
+
+
+@pytest.mark.parametrize(("factor", "decimals"), [(1, 0), (10, 1), (100, 2)])
+def test_decimals(factor: int, decimals: int) -> None:
+    """Display precision follows the factor."""
+    assert NibeRegister(register="1", title="x", factor=factor).decimals == decimals
+
+
+def test_raw_value_is_not_truncated() -> None:
+    """raw_value is passed through as published."""
+    reg = NibeRegister.from_payload(_payload(factor=10, data=24.5, raw_data=24.5))
+    assert reg.raw_value == 24.5
+
+
 def test_definition_roundtrip() -> None:
     """Stored definitions recreate the register without its runtime value."""
     original = NibeRegister.from_payload(OPERATIONAL_MODE_PAYLOAD)

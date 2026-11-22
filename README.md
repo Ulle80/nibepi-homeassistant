@@ -14,7 +14,7 @@ Nach einem Neustart von Home Assistant sind alle bekannten Entities sofort wiede
 | schreibbar, 0/1 ohne Einheit | Switch |
 | schreibbar, sonst | Number (Grenzen und Schrittweite aus dem Register) |
 
-Schreibbare Register erscheinen als Konfigurations-Entities am Gerät. Nach dem Schreiben liest NibePi das Register zurück; der neue Wert erscheint, sobald NibePi ihn publiziert. Eine Fehlermeldung bei abgelehnten Werten liefert NibePi nicht.
+Schreibbare Register erscheinen als Konfigurations-Entities am Gerät und sind **standardmäßig deaktiviert** – außer Heizkurve, Kurvenverschiebung, Raum-Sollwert, Warmwasser-Komfortmodus und Temporary Lux. Alles andere (Betriebsart, Gradminuten, Pumpendrehzahlen, Zusatzheizung …) aktivierst du bewusst unter Gerät → Entities. Nach dem Schreiben liest NibePi das Register zurück; der neue Wert erscheint, sobald NibePi ihn publiziert. Eine Fehlermeldung bei abgelehnten Werten liefert NibePi nicht.
 
 ## Voraussetzungen
 - NibePi mit aktiviertem MQTT (Node-RED-UI → Einstellungen), Basis-Topic merken (Standard `nibe/modbus/`)

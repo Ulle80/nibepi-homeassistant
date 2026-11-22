@@ -2,6 +2,20 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+Erkenntnisse aus dem ersten Test an einer echten F1255.
+
+### Geändert
+- **Schreibbare Register sind standardmäßig deaktiviert**, außer üblichen Komfort-Einstellungen (Heizkurve, Kurvenverschiebung, Raum-Sollwert S1–S4, Warmwasser-Komfortmodus, Temporary Lux). Bereits angelegte Entities bleiben unverändert.
+- Register, deren Wertetabelle nur in der Beschreibung steht („0=Auto 1=Manual …“), werden als Auswahl bzw. Klartext-Sensor angezeigt (z.B. Betriebsart, Prio, Verdichter-/Pumpenstatus). Wechselt dadurch der Entity-Typ, wird die alte Entity entfernt.
+- Verdichterstarts, Betriebsstunden und Wärmemengen laufen als stetig steigende Zähler (`total_increasing`); Anzeige-Nachkommastellen folgen dem Register-Faktor
+- Einheit „days“ wird als Tage erkannt
+
+### Behoben
+- Nicht angeschlossene Fühler (NibePi meldet z.B. −3276,8 °C) werden als „nicht verfügbar“ angezeigt
+- `raw_value` in der Diagnose wurde abgeschnitten
+
 ## [0.3.0] – 2026-11-22
 
 Erstes Release. **Noch nicht gegen echte NibePi-Hardware getestet.**

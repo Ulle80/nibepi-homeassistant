@@ -32,6 +32,20 @@ STORAGE_SAVE_DELAY: Final = 10
 # Pause between /get requests so the RS485 bus is not flooded.
 REFRESH_REQUEST_DELAY: Final = 0.25
 
+# Writable registers are created disabled, except these everyday comfort
+# settings (NIBE F-series register numbers). Everything else that can change
+# the heat pump's behaviour (operating mode, degree minutes, pump speeds,
+# additive heat ...) must be enabled deliberately by the user.
+COMFORT_REGISTERS: Final = frozenset(
+    {
+        "47007", "47008", "47009", "47010",  # heat curve S1-S4
+        "47011", "47012", "47013", "47014",  # heat curve offset S1-S4
+        "47398", "47397", "47396", "47395",  # room setpoint S1-S4
+        "47041",  # hot water comfort mode
+        "48132", "10020",  # temporary lux (extra hot water)
+    }
+)  # fmt: skip
+
 SIGNAL_NEW_REGISTER: Final = "nibepi_new_register_{entry_id}"
 SIGNAL_REGISTER_UPDATE: Final = "nibepi_register_update_{entry_id}_{register}"
 SIGNAL_AVAILABILITY: Final = "nibepi_availability_{entry_id}"

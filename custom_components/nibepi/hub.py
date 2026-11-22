@@ -10,10 +10,12 @@ from typing import Any
 from homeassistant.components import mqtt
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    DOMAIN,
     LWT_DISCONNECTED_SUFFIX,
     REFRESH_REQUEST_DELAY,
     SIGNAL_AVAILABILITY,
@@ -171,6 +173,8 @@ class NibePiHub:
             # Metadata changed (e.g. other pump model / NibePi update). Entities
             # derive limits, units and type from it, so rebuild them once.
             _LOGGER.info("Definition of register %s changed", register.register)
+            if known.kind is not register.kind:
+                self._remove_entity(known)
             self.registers[register.register] = register
             self._store.async_delay_save(self._data_to_store, STORAGE_SAVE_DELAY)
             if not self._reload_scheduled:
@@ -185,6 +189,20 @@ class NibePiHub:
                 entry_id=self.entry_id, register=register.register
             ),
         )
+
+    @callback
+    def _remove_entity(self, register: NibeRegister) -> None:
+        """Drop the entity of a register whose type changed (e.g. number->select).
+
+        The replacement lives in another domain with the same unique ID, so the
+        old registry entry would otherwise stay behind as unavailable.
+        """
+        registry = er.async_get(self.hass)
+        if entity_id := registry.async_get_entity_id(
+            register.kind.value, DOMAIN, f"{self.entry_id}_{register.register}"
+        ):
+            _LOGGER.info("Removing %s, register type changed", entity_id)
+            registry.async_remove(entity_id)
 
     @callback
     def _handle_lwt_message(self, msg: mqtt.ReceiveMessage) -> None:

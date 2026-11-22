@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
+from unittest.mock import patch
 
 from homeassistant.const import ATTR_ENTITY_ID, EntityCategory
 from homeassistant.core import HomeAssistant
@@ -36,8 +37,52 @@ def assert_published(mqtt_mock: MqttMockHAClient, topic: str, payload: str) -> N
 
 
 @pytest.fixture
+def enable_test_registers() -> Generator[None]:
+    """Treat the test registers as comfort settings so they are enabled."""
+    with patch(
+        "custom_components.nibepi.entity.COMFORT_REGISTERS",
+        frozenset({"47398", "40881", "47137", "47500"}),
+    ):
+        yield
+
+
+async def _setup_entry(hass: HomeAssistant) -> MockConfigEntry:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="nibe/modbus/",
+        data={CONF_BASE_TOPIC: "nibe/modbus/", CONF_LWT_TOPIC: "nibe"},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+async def test_only_comfort_settings_enabled_by_default(
+    hass: HomeAssistant,
+    mqtt_mock: MqttMockHAClient,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Writable registers start disabled unless they are comfort settings."""
+    entry = await _setup_entry(hass)
+    async_fire_mqtt_message(hass, "nibe/modbus/47398/json", ROOM_SETPOINT_PAYLOAD)
+    async_fire_mqtt_message(hass, "nibe/modbus/40881/json", ADJUST_AFFECT_PAYLOAD)
+    await hass.async_block_till_done()
+
+    setpoint = entity_registry.async_get(NUMBER_ID)
+    assert setpoint.disabled_by is None
+    assert hass.states.get(NUMBER_ID).state == "21.5"
+    adjust = entity_registry.async_get(SWITCH_ID)
+    assert adjust.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert hass.states.get(SWITCH_ID) is None
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+@pytest.fixture
 async def setup_writable(
-    hass: HomeAssistant, mqtt_mock: MqttMockHAClient
+    hass: HomeAssistant, mqtt_mock: MqttMockHAClient, enable_test_registers: None
 ) -> AsyncGenerator[None]:
     """Set up NibePi and announce the three writable registers."""
     entry = MockConfigEntry(

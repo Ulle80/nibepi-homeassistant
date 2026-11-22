@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 import json
 import math
+import re
 from typing import Any
 
 
@@ -55,6 +56,42 @@ DEFINITION_FIELDS: tuple[str, ...] = (
 )
 
 
+# "0=Auto 1=Manual 2=Add. heat only" or "10=off,15=starting,20=on".
+_INFO_PAIR = re.compile(r"(-?\d+)\s*=\s*([^,=]+?)(?=\s*,|\s+-?\d+\s*=|\s*$)")
+
+
+def _mapping_from_info(
+    info: str, *, writable: bool, low: float | None, high: float | None
+) -> dict[str, str]:
+    """Build a value map from a register's description, if it has one.
+
+    Several model files describe values only in ``info``. For writable
+    registers the map must cover both ends of the range, otherwise it is just
+    an example (e.g. "12=12 Hours 24=24 Hours" for a 0..48 setting) and a
+    select would make the other values unreachable.
+    """
+    mapping: dict[str, str] = {}
+    for key, label in _INFO_PAIR.findall(info):
+        mapping[key] = label.strip()
+    if len(mapping) < 2:
+        return {}
+    if (
+        writable
+        and low is not None
+        and high is not None
+        and (str(int(low)) not in mapping or str(int(high)) not in mapping)
+    ):
+        return {}
+    return mapping
+
+
+def _is_not_connected(value: Any, factor: float, size: str) -> bool:
+    """NibePi reports a missing sensor as the lowest signed value (0x8000...)."""
+    if not size.startswith("s") or not isinstance(value, (int, float)):
+        return False
+    return round(value * factor) == SIZE_LIMITS.get(size, SIZE_LIMITS["s16"])[0]
+
+
 def _to_float(value: Any) -> float | None:
     if value in (None, ""):
         return None
@@ -79,13 +116,48 @@ class NibeRegister:
     max: float | None = None
     mapping: dict[str, str] = field(default_factory=dict)
     value: Any = None
-    raw_value: int | None = None
+    raw_value: float | None = None
     timestamp: Any = None
 
     @property
     def is_enum(self) -> bool:
         """Return True if the register value is a mapped label."""
         return bool(self.mapping)
+
+    @property
+    def current_label(self) -> str | None:
+        """Return the label for the current value.
+
+        NibePi publishes the label for registers with a ``map`` in the model
+        file, but the plain number for maps we parsed from ``info``.
+        """
+        if self.value is None or not self.mapping:
+            return None
+        if (text := str(self.value)) in self.mapping.values():
+            return text
+        try:
+            return self.mapping.get(str(int(float(self.value))))
+        except (TypeError, ValueError):
+            return None
+
+    @property
+    def is_counter(self) -> bool:
+        """Return True for ever-increasing counters (energy, hours, starts).
+
+        NibePi models them as read-only 32-bit registers that cannot go below 0.
+        """
+        return (
+            not self.writable
+            and not self.is_enum
+            and self.size in ("s32", "u32")
+            and self.min in (0, None)
+            and self.unit in ("", "h", "kWh", "Wh", "MWh")
+        )
+
+    @property
+    def decimals(self) -> int:
+        """Number of decimals the factor allows (10 -> 1, 100 -> 2)."""
+        return max(0, math.ceil(math.log10(self.factor))) if self.factor > 1 else 0
 
     @property
     def kind(self) -> RegisterKind:
@@ -189,22 +261,31 @@ class NibeRegister:
         # NibePi uses 0/0 to mean "no range".
         if min_ == 0 and max_ == 0:
             min_ = max_ = None
+        size = str(data.get("size") or "s16")
+        writable = data.get("mode") == "R/W"  # NibePi writes only for exactly "R/W"
+        info = str(data.get("info") or "")
+
+        if not mapping and factor == 1:
+            mapping = _mapping_from_info(info, writable=writable, low=min_, high=max_)
+
+        value = data.get("data")
+        if _is_not_connected(value, factor, size):
+            value = None
 
         raw = data.get("raw_data")
         return cls(
             register=str(data["register"]),
             title=str(data.get("titel") or data.get("title") or data["register"]),
             unit=str(data.get("unit") or ""),
-            info=str(data.get("info") or ""),
+            info=info,
             factor=factor,
-            size=str(data.get("size") or "s16"),
-            # NibePi's setDataValue only writes for exactly "R/W".
-            writable=data.get("mode") == "R/W",
+            size=size,
+            writable=writable,
             min=min_,
             max=max_,
             mapping=mapping,
-            value=data.get("data"),
-            raw_value=int(raw) if isinstance(raw, (int, float)) else None,
+            value=value,
+            raw_value=raw if isinstance(raw, (int, float)) else None,
             timestamp=data.get("timestamp"),
         )
 

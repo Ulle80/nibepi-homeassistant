@@ -40,6 +40,8 @@ UNIT_MAP: dict[str, tuple[str | None, SensorDeviceClass | None]] = {
     "h": (UnitOfTime.HOURS, SensorDeviceClass.DURATION),
     "min": (UnitOfTime.MINUTES, SensorDeviceClass.DURATION),
     "s": (UnitOfTime.SECONDS, SensorDeviceClass.DURATION),
+    "days": (UnitOfTime.DAYS, SensorDeviceClass.DURATION),
+    "d": (UnitOfTime.DAYS, SensorDeviceClass.DURATION),
     "l/m": (UnitOfVolumeFlowRate.LITERS_PER_MINUTE, SensorDeviceClass.VOLUME_FLOW_RATE),
 }
 
@@ -69,7 +71,8 @@ class NibePiSensor(NibePiEntity, SensorEntity):
         unit, device_class = UNIT_MAP.get(register.unit, (register.unit or None, None))
         self._attr_native_unit_of_measurement = unit
         self._attr_device_class = device_class
-        if device_class is SensorDeviceClass.ENERGY:
+        self._attr_suggested_display_precision = register.decimals
+        if device_class is SensorDeviceClass.ENERGY or register.is_counter:
             self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         else:
             self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -77,10 +80,9 @@ class NibePiSensor(NibePiEntity, SensorEntity):
     @property
     def native_value(self) -> str | float | None:
         """Return the current value."""
-        value = self._register.value
         if self._register.is_enum:
-            return str(value) if value in self._attr_options else None
+            return self._register.current_label
         try:
-            return float(value)
+            return float(self._register.value)
         except (TypeError, ValueError):
             return None

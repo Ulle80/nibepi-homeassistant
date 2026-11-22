@@ -26,7 +26,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["D", "SLF001", "INP001"]
+"tests/**" = ["D", "SLF001", "INP001", "PLR0917"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true

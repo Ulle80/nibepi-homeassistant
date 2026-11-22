@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -82,6 +83,42 @@ async def test_changed_definition_rebuilds_entities(
     state = hass.states.get(SETPOINT_ID)
     assert state.attributes["max"] == 30.0
     assert state.state == "21.5"
+    await _unload(hass, entry)
+
+
+async def test_type_change_removes_old_entity(
+    hass: HomeAssistant,
+    mqtt_mock: MqttMockHAClient,
+    entry: MockConfigEntry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """When a number becomes a select, the old number entity is removed."""
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    payload = {
+        "register": "47137",
+        "factor": 1,
+        "size": "u8",
+        "mode": "R/W",
+        "titel": "Operational mode",
+        "info": "The operational mode of the heat pump",
+        "min": "0",
+        "max": "2",
+        "data": 1,
+    }
+    async_fire_mqtt_message(hass, "nibe/modbus/47137/json", json.dumps(payload))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    unique_id = f"{entry.entry_id}_47137"
+    assert entity_registry.async_get_entity_id("number", DOMAIN, unique_id)
+
+    payload["info"] += " 0=Auto 1=Manual 2=Add. heat only"
+    async_fire_mqtt_message(hass, "nibe/modbus/47137/json", json.dumps(payload))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    async_fire_mqtt_message(hass, "nibe/modbus/47137/json", json.dumps(payload))
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert entity_registry.async_get_entity_id("number", DOMAIN, unique_id) is None
+    assert entity_registry.async_get_entity_id("select", DOMAIN, unique_id)
     await _unload(hass, entry)
 
 

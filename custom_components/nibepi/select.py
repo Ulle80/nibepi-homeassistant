@@ -35,9 +35,8 @@ class NibePiSelect(NibePiWritableEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Return the active label (NibePi publishes the label, not the key)."""
-        value = self._register.value
-        return value if value in self._attr_options else None
+        """Return the active label."""
+        return self._register.current_label
 
     async def async_select_option(self, option: str) -> None:
         """Write the numeric key for the chosen label (NibePi rejects labels)."""

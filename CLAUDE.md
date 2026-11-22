@@ -9,7 +9,12 @@ HACS-Custom-Integration `nibepi` für [anerdins/nibepi](https://github.com/anerd
 - `entity.py` – `NibePiEntity`-Basis (has_entity_name, unique_id `<entry_id>_<register>`, DeviceInfo).
 - Plattformen legen Entities **dynamisch** an, wenn ein neues Register auftaucht (`async_setup_register_platform`). `NibeRegister.kind` entscheidet: nur lesbar → `sensor`; R/W mit `map` → `select`; R/W, factor 1, 0..1, ohne Einheit → `switch`; sonst R/W → `number`. Jedes Register erzeugt genau eine Entity.
 - Schreiben immer über `NibeRegister.encode_value()` / `key_for_label()` – NibePi akzeptiert nur Zahlen, schneidet ab und verwirft Werte über max. Nicht exakt kodierbare Werte (z.B. 4.35 bei max 435/factor 100) → `UnencodableValueError` → übersetzte `ServiceValidationError`.
-- Ändert sich die Definition eines bekannten Registers, wird sie übernommen, gespeichert und der Entry einmal neu geladen.
+- Ändert sich die Definition eines bekannten Registers, wird sie übernommen, gespeichert und der Entry einmal neu geladen. Wechselt dabei der Entity-Typ, entfernt der Hub die alte Registry-Entity.
+- Wertetabellen: `map` aus der Modelldatei, sonst aus `info` geparst (`_mapping_from_info`, nur factor 1; bei schreibbaren Registern nur, wenn min und max als Schlüssel vorkommen). NibePi sendet dann Zahlen statt Labels → immer `current_label` nutzen.
+- Fehlender Fühler = kleinster Wert des signed-Typs (z.B. −32768) → `value = None`.
+- Zähler (`is_counter`): read-only, s32/u32, min 0/None → `total_increasing`.
+- Schreibbare Entities standardmäßig deaktiviert außer `COMFORT_REGISTERS` (const.py).
+- Echte Testdaten: F1255 mit 102 Registern (siehe Tests `test_real_world_registers`, `test_mapping_from_info`).
 - Last Will `nibe` ist bei allen NibePis gleich → nach einem LWT wird das eigene Gerät per `/get` angepingt.
 - Unload: erst `hub.async_stop()` (MQTT ab), dann Plattformen, dann `async_save()`. Setup-Fehler nach dem Forwarding rollt die Plattformen zurück.
 
